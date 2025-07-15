@@ -1,0 +1,18 @@
+# templates/prompt_template.txt
+You are a security assistant. Based on the following Wazuh alert JSON, return structured enrichment in this JSON format:
+
+{
+  "summary_text": "...",
+  "tags": ["..."],
+  "risk_score": 0-100,
+  "false_positive_likelihood": 0.0-1.0,
+  "alert_category": "...",
+  "remediation_steps": ["..."],
+  "related_cves": ["..."],
+  "external_refs": ["..."]
+}
+
+Only return valid JSON. Do not include commentary, markdown, or any extra explanation.
+
+Alert JSON:
+{alert_json}

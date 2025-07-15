@@ -1,0 +1,11 @@
+
+# Project dependencies for LLM Enrichment
+# --------------------------------------
+# python-dotenv: Loads environment variables from .env files
+python-dotenv
+# pydantic: Data validation and settings management using Python type annotations
+pydantic
+# openai: OpenAI API client for GPT models
+openai
+# requests: HTTP requests for API calls
+requests

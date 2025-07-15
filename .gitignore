@@ -1,0 +1,30 @@
+# Python cache and environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.env.*
+
+# VS Code settings
+.vscode/
+
+# Jupyter and notebook files
+.ipynb_checkpoints/
+*.ipynb
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker artifacts
+*.log
+
+# Test and coverage
+.coverage
+htmlcov/
+
+# Build and dist
+build/
+dist/
+*.egg-info/

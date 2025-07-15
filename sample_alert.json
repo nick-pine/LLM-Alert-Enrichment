@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-07-15T12:00:00Z",
+  "rule": {
+    "level": 5,
+    "description": "Suspicious login attempt",
+    "id": "10001",
+    "firedtimes": 1,
+    "mail": false,
+    "groups": ["authentication", "ssh"],
+    "pci_dss": ["10.2.4"],
+    "gpg13": ["7.1"],
+    "gdpr": ["32.2"],
+    "hipaa": ["164.312"],
+    "nist_800_53": ["AC-7"],
+    "tsc": ["CC6.1"],
+    "mitre": {"T1078": ["Valid Accounts"]}
+  },
+  "agent": {
+    "id": "001",
+    "name": "web-server-01"
+  },
+  "manager": {
+    "name": "wazuh-manager"
+  },
+  "id": "alert-12345",
+  "full_log": "User admin attempted to login from IP 192.168.1.100",
+  "decoder": {
+    "name": "sshd",
+    "parent": "auth",
+    "ftscomment": "SSH authentication"
+  },
+  "predecoder": {
+    "program_name": "sshd",
+    "timestamp": "2025-07-15T12:00:00Z",
+    "hostname": "web-server-01"
+  },
+  "data": {
+    "srcip": "192.168.1.100",
+    "dstip": "192.168.1.10",
+    "user": "admin"
+  },
+  "location": "web-server-01->/var/log/auth.log"
+}
