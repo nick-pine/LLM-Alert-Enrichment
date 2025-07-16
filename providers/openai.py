@@ -8,7 +8,7 @@ import time
 import openai
 import os
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone
 from schemas.input_schema import WazuhAlertInput
 from schemas.output_schema import Enrichment, EnrichedAlertOutput
 from providers.ollama import query_ollama
@@ -78,7 +78,7 @@ def query_openai(alert: dict, model: str = "gpt-4") -> EnrichedAlertOutput:
         enrichment = Enrichment(**enrichment_data)
         return EnrichedAlertOutput(
             alert_id=alert.get("id", "unknown-id"),
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             alert=alert_obj,
             enrichment=enrichment
         )
@@ -104,7 +104,7 @@ def query_openai(alert: dict, model: str = "gpt-4") -> EnrichedAlertOutput:
             )
             return EnrichedAlertOutput(
                 alert_id=alert.get("id", "unknown-id"),
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(timezone.utc),
                 alert=alert_obj,
                 enrichment=fallback_enrichment
             )

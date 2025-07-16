@@ -10,7 +10,7 @@ import json
 import time
 import logging
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from schemas.input_schema import WazuhAlertInput
 from schemas.output_schema import Enrichment, EnrichedAlertOutput
@@ -102,34 +102,30 @@ def query_gemini(alert: dict, model: str = "gemini-2.0-flash") -> EnrichedAlertO
         enrichment = Enrichment(**enrichment_data)
         return EnrichedAlertOutput(
             alert_id=alert.get("id", "unknown-id"),
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             alert=alert_obj,
             enrichment=enrichment
         )
 
     except Exception as e:
         logger.error(f"Gemini enrichment error: {e}")
-        try:
-            return query_ollama(alert, model="phi3:mini")
-        except Exception as fallback:
-            logger.error(f"Fallback to Phi-3 also failed: {fallback}")
-            fallback_enrichment = Enrichment(
-                summary_text=f"Enrichment failed: {e}",
-                tags=[],
-                risk_score=0,
-                false_positive_likelihood=1.0,
-                alert_category="Unknown",
-                remediation_steps=[],
-                related_cves=[],
-                external_refs=[],
-                llm_model_version=model,
-                enriched_by=f"{model}@fallback",
-                enrichment_duration_ms=0
-            )
-            return EnrichedAlertOutput(
-                alert_id=alert.get("id", "unknown-id"),
-                timestamp=datetime.utcnow(),
-                alert=alert_obj,
-                enrichment=fallback_enrichment
-            )
+        fallback_enrichment = Enrichment(
+            summary_text=f"Enrichment failed: {e}",
+            tags=[],
+            risk_score=0,
+            false_positive_likelihood=1.0,
+            alert_category="Unknown",
+            remediation_steps=[],
+            related_cves=[],
+            external_refs=[],
+            llm_model_version=model,
+            enriched_by=f"{model}@gemini-api",
+            enrichment_duration_ms=0
+        )
+        return EnrichedAlertOutput(
+            alert_id=alert.get("id", "unknown-id"),
+            timestamp=datetime.now(timezone.utc),
+            alert=alert_obj,
+            enrichment=fallback_enrichment
+        )
 

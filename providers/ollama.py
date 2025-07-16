@@ -10,7 +10,7 @@ import json
 import time
 import logging
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 from schemas.input_schema import WazuhAlertInput
 from schemas.output_schema import Enrichment, EnrichedAlertOutput
 from core.utils import load_prompt_template  # shared utility
@@ -81,7 +81,7 @@ def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
         enrichment = Enrichment(**parsed_json)
         return EnrichedAlertOutput(
             alert_id=alert.get("id", "unknown-id"),
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
             alert=alert_obj,
             enrichment=enrichment
         )
@@ -109,7 +109,7 @@ def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
 
     return EnrichedAlertOutput(
         alert_id=alert.get("id", "unknown-id"),
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         alert=alert_obj,
         enrichment=fallback
     )
