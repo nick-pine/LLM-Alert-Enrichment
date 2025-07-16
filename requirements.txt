@@ -1,4 +1,3 @@
-
 # Project dependencies for LLM Enrichment
 # --------------------------------------
 # python-dotenv: Loads environment variables from .env files
@@ -11,3 +10,5 @@ openai
 requests
 # yara-python: YARA pattern matching for alert enrichment
 yara-python
+# Add this to requirements.txt for Docker and venv compatibility
+elasticsearch==7.17.12

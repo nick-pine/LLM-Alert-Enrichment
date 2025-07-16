@@ -1,44 +1,81 @@
+
 from providers.gemini import query_gemini  # You can swap for query_openai, query_claude, or query_ollama
 import json
 
-# Example alert containing the word 'malware' to trigger the YARA rule
-sample_alert = {
-    "id": "test-1",
-    "timestamp": "2025-07-15T12:00:00Z",
-    "rule": {
-        "id": "100001",
-        "description": "Test alert for malware",
-        "level": 5,
-        "firedtimes": 1,
-        "mail": False,
-        "groups": ["test"],
-        "pci_dss": [],
-        "gpg13": [],
-        "gdpr": [],
-        "hipaa": [],
-        "nist_800_53": [],
-        "tsc": [],
-        "mitre": {
-            "id": ["T1059"],
-            "technique": ["Command and Scripting Interpreter"]
+def fill_missing_fields(alert):
+    alert.setdefault("full_log", "")
+    # Ensure predecoder exists and has required fields
+    predecoder_defaults = {
+        "program_name": "",
+        "timestamp": "",
+        "hostname": ""
+    }
+    if "predecoder" not in alert or not isinstance(alert["predecoder"], dict):
+        alert["predecoder"] = predecoder_defaults.copy()
+    else:
+        for k, v in predecoder_defaults.items():
+            alert["predecoder"].setdefault(k, v)
+
+    alert.setdefault("decoder", {"name": "", "parent": "", "ftscomment": ""})
+    if "decoder" in alert:
+        alert["decoder"].setdefault("parent", "")
+        alert["decoder"].setdefault("ftscomment", "")
+    if "rule" in alert:
+        alert["rule"].setdefault("gpg13", [])
+        alert["rule"].setdefault("hipaa", [])
+        alert["rule"].setdefault("mitre", {"id": [], "technique": []})
+    return alert
+
+
+# To test with a real alert JSON file, load and preprocess it:
+try:
+    with open("sample_alert.json", "r", encoding="utf-8") as f:
+        alert_json = json.load(f)
+        # If the alert is wrapped in _source (Kibana export), extract it
+        if '_source' in alert_json:
+            sample_alert = alert_json['_source']
+        else:
+            sample_alert = alert_json
+        sample_alert = fill_missing_fields(sample_alert)
+except Exception:
+    # Fallback to the original hardcoded sample if file not found or invalid
+    sample_alert = {
+        "id": "test-1",
+        "timestamp": "2025-07-15T12:00:00Z",
+        "rule": {
+            "id": "100001",
+            "description": "Test alert for malware",
+            "level": 5,
+            "firedtimes": 1,
+            "mail": False,
+            "groups": ["test"],
+            "pci_dss": [],
+            "gpg13": [],
+            "gdpr": [],
+            "hipaa": [],
+            "nist_800_53": [],
+            "tsc": [],
+            "mitre": {
+                "id": ["T1059"],
+                "technique": ["Command and Scripting Interpreter"]
+            },
         },
-    },
-    "agent": {"id": "001", "name": "test-agent"},
-    "manager": {"name": "wazuh-manager"},
-    "full_log": "This is a test alert with malware present.",
-    "decoder": {
-        "name": "test-decoder",
-        "parent": "parent-decoder",
-        "ftscomment": "comment"
-    },
-    "predecoder": {
-        "hostname": "test-host",
-        "program_name": "test-program",
-        "timestamp": "2025-07-15T12:00:00Z"
-    },
-    "location": "/var/log/test.log",
-    "data": {"message": "This is a test alert with malware present."}
-}
+        "agent": {"id": "001", "name": "test-agent"},
+        "manager": {"name": "wazuh-manager"},
+        "full_log": "This is a test alert with malware present.",
+        "decoder": {
+            "name": "test-decoder",
+            "parent": "parent-decoder",
+            "ftscomment": "comment"
+        },
+        "predecoder": {
+            "hostname": "test-host",
+            "program_name": "test-program",
+            "timestamp": "2025-07-15T12:00:00Z"
+        },
+        "location": "/var/log/test.log",
+        "data": {"message": "This is a test alert with malware present."}
+    }
 
 
 result = query_gemini(sample_alert)  # or query_ollama, query_openai, etc.
