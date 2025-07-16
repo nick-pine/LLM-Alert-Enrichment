@@ -9,3 +9,5 @@ pydantic
 openai
 # requests: HTTP requests for API calls
 requests
+# yara-python: YARA pattern matching for alert enrichment
+yara-python

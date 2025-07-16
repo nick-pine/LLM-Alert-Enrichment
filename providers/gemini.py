@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from schemas.input_schema import WazuhAlertInput
 from schemas.output_schema import Enrichment, EnrichedAlertOutput
+from core.yara_integration import load_yara_rules, scan_alert_with_yara
 
 from providers.ollama import query_ollama
 from core.utils import load_prompt_template
@@ -48,10 +49,22 @@ def clean_llm_response(text: str) -> str:
     """
     if text.startswith("```"):
         text = text.replace("```json", "").replace("```", "").strip()
+    # Remove any leading/trailing non-JSON text
+    text = text.strip()
+    # Try to extract JSON object if extra text is present
+    if not text.startswith('{'):
+        idx = text.find('{')
+        if idx != -1:
+            text = text[idx:]
+    # Remove trailing commas before closing braces/brackets
+    import re
+    text = re.sub(r',([ \t\r\n]*[}\]])', r'\1', text)
     return text
 
 
 def query_gemini(alert: dict, model: str = "gemini-2.0-flash") -> EnrichedAlertOutput:
+    import sys
+    # Debug prints removed for cleaner output
     """
     Enriches a Wazuh alert using the Gemini API.
 
@@ -66,37 +79,102 @@ def query_gemini(alert: dict, model: str = "gemini-2.0-flash") -> EnrichedAlertO
         ValueError: If the input alert format is invalid.
         RuntimeError: If the prompt template cannot be loaded.
     """
+    raw_llm_response = None
     try:
         alert_obj = WazuhAlertInput(**alert)
+        # Alert schema validated
     except Exception as e:
+        print(f"[DEBUG] Alert schema validation failed: {e}")
+        sys.stdout.flush()
         logger.error(f"Invalid alert schema: {e}")
         raise ValueError(f"Invalid input alert format: {e}")
 
+    # YARA integration: load rules and scan alert
+    # About to load YARA rules and scan alert
+    yara_results = []
+    try:
+        rules = load_yara_rules()
+        yara_results = scan_alert_with_yara(alert, rules)
+        # YARA scan completed
+    except Exception as e:
+        # YARA scan failed or no rules loaded
+        logger.warning(f"YARA scan failed or no rules loaded: {e}")
+
+    # Prompt template loading and formatting debug
+    # About to load prompt template
     try:
         template = load_prompt_template(PROMPT_TEMPLATE_PATH)
-        prompt = template.format(alert_json=json.dumps(alert_obj.model_dump(), indent=2))
+        # Prompt template loaded and about to format
+        prompt = template.format(
+            alert_json=json.dumps(alert_obj.model_dump(), indent=2),
+            yara_results=json.dumps(yara_results, indent=2) if yara_results else "None"
+        )
+        # Prompt template formatted successfully
+    except Exception as e:
+        print(f"[DEBUG] Prompt template loading/formatting failed: {e}")
+        sys.stdout.flush()
+        raise
+
+    try:
+        template = load_prompt_template(PROMPT_TEMPLATE_PATH)
+        prompt = template.format(
+            alert_json=json.dumps(alert_obj.model_dump(), indent=2),
+            yara_results=json.dumps(yara_results, indent=2) if yara_results else "None"
+        )
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]
         }
 
+        # About to call Gemini API
         start = time.time()
-        response = requests.post(
-            GEMINI_API_URL_TEMPLATE.format(model=model),
-            headers=HEADERS,
-            json=payload,
-            timeout=45
-        )
-        response.raise_for_status()
+        try:
+            # Calling Gemini API now...
+            response = requests.post(
+                GEMINI_API_URL_TEMPLATE.format(model=model),
+                headers=HEADERS,
+                json=payload,
+                timeout=45
+            )
+            # Gemini API call completed
+        except Exception as api_exc:
+            print(f"[DEBUG] Gemini API call failed: {api_exc}")
+            sys.stdout.flush()
+            raise
+        import sys
+        # Gemini HTTP status and raw content (pre-raise)
+        try:
+            response.raise_for_status()
+        except Exception as raise_exc:
+            print("[DEBUG] Gemini response.raise_for_status() exception:", raise_exc)
+            print("[DEBUG] Gemini HTTP raw content (on exception):\n", response.content.decode('utf-8', errors='replace'))
+            sys.stdout.flush()
+            raise
 
-        json_text = clean_llm_response(
-            response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-        )
-        enrichment_data = json.loads(json_text)
+        # Print the full Gemini API response for debugging, before any extraction
+        api_json = response.json()
+        # Full Gemini API response (before extraction)
+
+        # Try to extract the LLM response, but guard against missing keys
+        try:
+            raw_llm_response = api_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+            # Raw Gemini LLM response
+            if raw_llm_response is not None:
+                json_text = clean_llm_response(raw_llm_response)
+                # Cleaned Gemini LLM response (json_text)
+                enrichment_data = json.loads(json_text)
+            else:
+                enrichment_data = {}
+        except Exception as extract_exc:
+            print("[DEBUG] Gemini API extraction error:", extract_exc)
+            raw_llm_response = None
+            enrichment_data = {}
 
         enrichment_data.update({
             "llm_model_version": model,
             "enriched_by": f"{model}@gemini-api",
-            "enrichment_duration_ms": int((time.time() - start) * 1000)
+            "enrichment_duration_ms": int((time.time() - start) * 1000),
+            "yara_matches": yara_results,
+            "raw_llm_response": raw_llm_response  # For debugging
         })
 
         enrichment = Enrichment(**enrichment_data)
@@ -109,6 +187,16 @@ def query_gemini(alert: dict, model: str = "gemini-2.0-flash") -> EnrichedAlertO
 
     except Exception as e:
         logger.error(f"Gemini enrichment error: {e}")
+        # Print the exception and, if available, the raw HTTP response content
+        import sys
+        print("\n[DEBUG] Gemini Exception:", str(e))
+        # Try to print the response content if it's a requests exception
+        if 'response' in locals() and hasattr(response, 'content'):
+            try:
+                print("[DEBUG] Gemini HTTP response content:\n", response.content.decode('utf-8'))
+            except Exception as decode_exc:
+                print("[DEBUG] Could not decode response content:", decode_exc)
+        sys.stdout.flush()
         fallback_enrichment = Enrichment(
             summary_text=f"Enrichment failed: {e}",
             tags=[],
@@ -120,7 +208,9 @@ def query_gemini(alert: dict, model: str = "gemini-2.0-flash") -> EnrichedAlertO
             external_refs=[],
             llm_model_version=model,
             enriched_by=f"{model}@gemini-api",
-            enrichment_duration_ms=0
+            enrichment_duration_ms=0,
+            yara_matches=yara_results,
+            raw_llm_response=raw_llm_response
         )
         return EnrichedAlertOutput(
             alert_id=alert.get("id", "unknown-id"),

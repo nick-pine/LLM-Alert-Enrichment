@@ -13,6 +13,7 @@ import requests
 from datetime import datetime, timezone
 from schemas.input_schema import WazuhAlertInput
 from schemas.output_schema import Enrichment, EnrichedAlertOutput
+from core.yara_integration import load_yara_rules, scan_alert_with_yara
 from core.utils import load_prompt_template  # shared utility
 
 logger = logging.getLogger(__name__)
@@ -51,15 +52,27 @@ def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
         ValueError: If the input alert format is invalid.
         RuntimeError: If the prompt template cannot be loaded.
     """
+
     try:
         alert_obj = WazuhAlertInput(**alert)
     except Exception as e:
         logger.error(f"Invalid input alert format: {e}")
         raise ValueError(f"Invalid input alert format: {e}")
 
+    # YARA integration: load rules and scan alert
+    yara_results = []
+    try:
+        rules = load_yara_rules()
+        yara_results = scan_alert_with_yara(alert, rules)
+    except Exception as e:
+        logger.warning(f"YARA scan failed or no rules loaded: {e}")
+
     try:
         template = load_prompt_template(PROMPT_TEMPLATE_PATH)
-        prompt = template.format(alert_json=json.dumps(alert_obj.model_dump(), indent=2))
+        prompt = template.format(
+            alert_json=json.dumps(alert_obj.model_dump(), indent=2),
+            yara_results=json.dumps(yara_results, indent=2) if yara_results else "None"
+        )
 
         start = time.time()
         response = requests.post(
@@ -75,7 +88,8 @@ def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
         parsed_json.update({
             "llm_model_version": f"{model}-ollama",
             "enriched_by": f"{model}@WSL",
-            "enrichment_duration_ms": int((time.time() - start) * 1000)
+            "enrichment_duration_ms": int((time.time() - start) * 1000),
+            "yara_matches": yara_results
         })
 
         enrichment = Enrichment(**parsed_json)
@@ -104,7 +118,8 @@ def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
         external_refs=[],
         llm_model_version=f"{model}-ollama",
         enriched_by=f"{model}@WSL",
-        enrichment_duration_ms=0
+        enrichment_duration_ms=0,
+        yara_matches=yara_results
     )
 
     return EnrichedAlertOutput(

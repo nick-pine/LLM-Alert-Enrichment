@@ -14,6 +14,7 @@ from schemas.output_schema import Enrichment, EnrichedAlertOutput
 from providers.ollama import query_ollama
 from core.logger import log
 from core.utils import load_prompt_template
+from core.yara_integration import load_yara_rules, scan_alert_with_yara
 
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -37,17 +38,32 @@ def query_openai(alert: dict, model: str = "gpt-4") -> EnrichedAlertOutput:
         ValueError: If the input alert format is invalid.
         RuntimeError: If the prompt template cannot be loaded.
     """
+
+    # Validate alert input
     try:
         alert_obj = WazuhAlertInput(**alert)
     except Exception as e:
         raise ValueError(f"Invalid input alert format: {e}")
 
+    # YARA integration: load rules and scan alert
+    yara_results = []
+    try:
+        rules = load_yara_rules()
+        yara_results = scan_alert_with_yara(alert, rules)
+    except Exception as e:
+        log(f"[!] YARA scan failed or no rules loaded: {e}", tag="yara")
+
+    # Load prompt template and include YARA results if present
     try:
         template = load_prompt_template("templates/prompt_template.txt")
     except Exception as e:
         raise RuntimeError(f"Failed to load prompt template: {e}")
 
-    prompt = template.format(alert_json=json.dumps(alert_obj.model_dump(), indent=2))
+    prompt = template.format(
+        alert_json=json.dumps(alert_obj.model_dump(), indent=2),
+        yara_results=json.dumps(yara_results, indent=2) if yara_results else "None"
+    )
+
 
     try:
         start = time.time()
@@ -72,7 +88,8 @@ def query_openai(alert: dict, model: str = "gpt-4") -> EnrichedAlertOutput:
         enrichment_data.update({
             "llm_model_version": model,
             "enriched_by": f"{model}@openai-api",
-            "enrichment_duration_ms": int((time.time() - start) * 1000)
+            "enrichment_duration_ms": int((time.time() - start) * 1000),
+            "yara_matches": yara_results
         })
 
         enrichment = Enrichment(**enrichment_data)
@@ -100,7 +117,8 @@ def query_openai(alert: dict, model: str = "gpt-4") -> EnrichedAlertOutput:
                 external_refs=[],
                 llm_model_version=model,
                 enriched_by=f"{model}@fallback",
-                enrichment_duration_ms=0
+                enrichment_duration_ms=0,
+                yara_matches=yara_results
             )
             return EnrichedAlertOutput(
                 alert_id=alert.get("id", "unknown-id"),

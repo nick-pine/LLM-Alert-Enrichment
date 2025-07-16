@@ -1,7 +1,7 @@
 # templates/prompt_template.txt
 You are a security assistant. Based on the following Wazuh alert JSON, return structured enrichment in this JSON format:
 
-{
+{{
   "summary_text": "...",
   "tags": ["..."],
   "risk_score": 0-100,
@@ -10,9 +10,18 @@ You are a security assistant. Based on the following Wazuh alert JSON, return st
   "remediation_steps": ["..."],
   "related_cves": ["..."],
   "external_refs": ["..."]
-}
+}}
 
-Only return valid JSON. Do not include commentary, markdown, or any extra explanation.
+
+Instructions:
+- Only return valid JSON with all required fields shown above.
+- The first character of your response must be '{{' and the last character must be '}}'.
+- Do not include any commentary, markdown, or extra explanation before or after the JSON.
+- Do not add trailing commas or extra text.
+- Do not wrap the JSON in code blocks or any other formatting.
 
 Alert JSON:
 {alert_json}
+
+YARA Matches:
+{yara_results}

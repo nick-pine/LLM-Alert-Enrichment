@@ -21,6 +21,8 @@ class Enrichment(BaseModel):
     llm_model_version: Optional[str]
     enriched_by: Optional[str]
     enrichment_duration_ms: Optional[int]
+    yara_matches: Optional[list] = None  # List of YARA match results (rule, tags, meta)
+    raw_llm_response: Optional[str] = None  # For debugging: raw LLM output
 
 class EnrichedAlertOutput(BaseModel):
     """Schema for the final enriched alert output."""
