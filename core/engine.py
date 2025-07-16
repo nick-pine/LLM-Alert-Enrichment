@@ -50,6 +50,9 @@ def run_enrichment_loop():
                 log(f"Enriching alert {alert_id}...", tag="+")
                 enriched = query_llm(alert, model=LLM_MODEL)
 
+                # Uncomment below to print the raw LLM provider response for debugging
+                # print("[RAW LLM RESPONSE]", enriched)
+
                 output = {
                     "alert_id": alert_id,
                     "timestamp": datetime.now(timezone.utc).isoformat(),

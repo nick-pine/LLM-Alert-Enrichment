@@ -40,7 +40,10 @@ sample_alert = {
     "data": {"message": "This is a test alert with malware present."}
 }
 
+
 result = query_gemini(sample_alert)  # or query_ollama, query_openai, etc.
+
+
 result_dict = result.model_dump()
 
 enrich = result_dict['enrichment']
@@ -76,7 +79,12 @@ print("YARA Matches:")
 for match in enrich.get('yara_matches', []):
     print(f"  - Rule: {match.get('rule','')}, Meta: {match.get('meta',{})}")
 print("==============================\n")
-## Uncomment below to display the original alert in the output
+
+# Uncomment below to display the original alert in the output
 # print("========== ORIGINAL ALERT ==========")
 # print(json.dumps(result_dict['alert'], indent=2, default=str))
+# print("====================================\n")
+# print("========== RAW RESPONSE ==========")
+# # Uncomment below to print the raw LLM provider response for debugging
+# print("[RAW LLM RESPONSE]", result)
 # print("====================================\n")
