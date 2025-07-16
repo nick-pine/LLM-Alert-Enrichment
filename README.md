@@ -45,27 +45,13 @@ docker build -t llm-enrichment .
 docker run --env-file .env -v $(pwd):/app llm-enrichment
 ```
 
-## Contributing
-Pull requests welcome! Please open issues for bugs or feature requests.
-
-## License
-See [LICENSE](LICENSE) for details.
-
 ## Usage
 Run enrichment on a sample alert:
 ```sh
 python llm_enrichment.py --input sample_alert.json --output enriched_output.json
 ```
 
-## Docker
-Build and run:
-```sh
-docker build -t llm-enrichment .
-docker run --env-file .env -v $(pwd):/app llm-enrichment
-```
-
 ## Contributing
 Pull requests welcome! Please open issues for bugs or feature requests.
 
-## License
-See [LICENSE](LICENSE) for details.
+
