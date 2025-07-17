@@ -19,6 +19,34 @@ from core.logger import log
 query_llm = get_provider()
 
 
+def fill_missing_fields(alert):
+    alert.setdefault("full_log", "")
+    # Ensure predecoder exists and has required fields
+    predecoder_defaults = {
+        "program_name": "",
+        "timestamp": "",
+        "hostname": ""
+    }
+    if "predecoder" not in alert or not isinstance(alert["predecoder"], dict):
+        alert["predecoder"] = predecoder_defaults.copy()
+    else:
+        for k, v in predecoder_defaults.items():
+            alert["predecoder"].setdefault(k, v)
+
+    # Ensure decoder fields
+    alert.setdefault("decoder", {"name": "", "parent": "", "ftscomment": ""})
+    if "decoder" in alert:
+        alert["decoder"].setdefault("parent", "")
+        alert["decoder"].setdefault("ftscomment", "")
+        alert["decoder"].setdefault("name", "")
+    # Ensure rule fields
+    if "rule" in alert:
+        alert["rule"].setdefault("gpg13", [])
+        alert["rule"].setdefault("hipaa", [])
+        alert["rule"].setdefault("mitre", {"id": [], "technique": []})
+    return alert
+
+
 def run_enrichment_loop():
     """
     Continuously reads alerts, enriches them using the selected LLM provider, and writes the output.
@@ -41,6 +69,7 @@ def run_enrichment_loop():
 
             try:
                 alert = json.loads(line)
+                alert = fill_missing_fields(alert)  # <-- Ensure missing fields are filled for every alert
                 alert_id = alert.get("id") or f"{alert.get('timestamp')}_{alert.get('rule', {}).get('id')}"
                 if alert_id in seen:
                     continue
