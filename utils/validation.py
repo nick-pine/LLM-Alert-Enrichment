@@ -25,6 +25,15 @@ def validate_input_alert(data: dict):
         return WazuhAlertInput(**data)
     except Exception as e:
         log(f"Invalid input schema: {e}", tag="!")
+        # Log the problematic alert data (truncate if very large)
+        import json
+        try:
+            alert_str = json.dumps(data)
+        except Exception:
+            alert_str = str(data)
+        if len(alert_str) > 1000:
+            alert_str = alert_str[:1000] + '... [truncated]'
+        log(f"[DEBUG] Problematic alert: {alert_str}", tag="DEBUG")
         raise
 
 def validate_enriched_output(data: dict):
