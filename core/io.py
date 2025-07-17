@@ -1,3 +1,30 @@
+from elasticsearch import Elasticsearch
+import os
+
+def get_elasticsearch_client():
+    """
+    Returns an Elasticsearch client.
+    Uses a CA bundle for SSL verification if ELASTIC_CA_BUNDLE is set.
+    Falls back to verify_certs=False with a warning if not set (not recommended for production).
+    """
+    from config import ELASTICSEARCH_URL, ELASTIC_USER, ELASTIC_PASS
+    ca_bundle = os.getenv("ELASTIC_CA_BUNDLE")
+    if ca_bundle:
+        log(f"Using CA bundle for Elasticsearch SSL: {ca_bundle}", tag="i")
+        return Elasticsearch(
+            ELASTICSEARCH_URL,
+            basic_auth=(ELASTIC_USER, ELASTIC_PASS),
+            ca_certs=ca_bundle,
+            headers={"Content-Type": "application/json"}
+        )
+    else:
+        log("No CA bundle set. SSL verification is disabled (not recommended for production).", tag="!")
+        return Elasticsearch(
+            ELASTICSEARCH_URL,
+            basic_auth=(ELASTIC_USER, ELASTIC_PASS),
+            verify_certs=False,
+            headers={"Content-Type": "application/json"}
+        )
 
 # core/io.py
 """

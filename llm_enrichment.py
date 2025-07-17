@@ -2,7 +2,7 @@
 
 import os
 import json
-from elasticsearch import Elasticsearch
+from core.io import get_elasticsearch_client
 from config import ELASTICSEARCH_URL, ELASTIC_USER, ELASTIC_PASS, ENRICHED_INDEX
 from core.engine import run_enrichment_loop
 from config import ALERT_LOG_PATH
@@ -79,12 +79,8 @@ def run_single_alert_file():
 
             # Send to Elasticsearch
             try:
-                es = Elasticsearch(
-                    ELASTICSEARCH_URL,
-                    basic_auth=(ELASTIC_USER, ELASTIC_PASS),
-                    verify_certs=False,
-                    headers={"Content-Type": "application/json"}
-                )
+                # Use foolproof helper to get Elasticsearch client with proper SSL handling
+                es = get_elasticsearch_client()
                 # Use alert_id as the document ID for idempotency
                 doc_id = result_dict.get('alert_id')
                 es.index(index=ENRICHED_INDEX, id=doc_id, document=result_dict)
