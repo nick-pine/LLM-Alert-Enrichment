@@ -46,6 +46,80 @@ def fill_missing_fields(alert):
         alert["rule"].setdefault("mitre", {"id": [], "technique": []})
     return alert
 
+# --- Type normalization helper ---
+def normalize_alert_types(alert):
+    """
+    Coerce alert fields to the correct types to match the Pydantic schema and avoid mapping errors.
+    """
+    # Top-level fields
+    alert['timestamp'] = str(alert.get('timestamp', ''))
+    alert['id'] = str(alert.get('id', ''))
+    if 'full_log' in alert and alert['full_log'] is not None:
+        alert['full_log'] = str(alert['full_log'])
+    if 'location' in alert and alert['location'] is not None:
+        alert['location'] = str(alert['location'])
+
+    # Rule
+    if 'rule' in alert and isinstance(alert['rule'], dict):
+        rule = alert['rule']
+        for key in ['level', 'firedtimes']:
+            if key in rule and rule[key] is not None:
+                try:
+                    rule[key] = int(rule[key])
+                except Exception:
+                    rule[key] = 0
+        for key in ['description', 'id', 'mail']:
+            if key in rule and rule[key] is not None:
+                rule[key] = str(rule[key])
+        # List fields
+        for key in ['groups', 'pci_dss', 'gpg13', 'gdpr', 'hipaa', 'nist_800_53', 'tsc']:
+            if key in rule:
+                if rule[key] is None:
+                    rule[key] = []
+                elif not isinstance(rule[key], list):
+                    rule[key] = [str(rule[key])]
+        # mitre
+        if 'mitre' in rule:
+            if rule['mitre'] is None or not isinstance(rule['mitre'], dict):
+                rule['mitre'] = {'id': [], 'technique': []}
+            else:
+                for mkey in ['id', 'technique']:
+                    if mkey in rule['mitre']:
+                        if rule['mitre'][mkey] is None:
+                            rule['mitre'][mkey] = []
+                        elif not isinstance(rule['mitre'][mkey], list):
+                            rule['mitre'][mkey] = [str(rule['mitre'][mkey])]
+
+    # Agent
+    if 'agent' in alert and isinstance(alert['agent'], dict):
+        agent = alert['agent']
+        for key in ['id', 'name']:
+            if key in agent and agent[key] is not None:
+                agent[key] = str(agent[key])
+
+    # Manager
+    if 'manager' in alert and isinstance(alert['manager'], dict):
+        manager = alert['manager']
+        if 'name' in manager and manager['name'] is not None:
+            manager['name'] = str(manager['name'])
+
+    # Decoder
+    if 'decoder' in alert and isinstance(alert['decoder'], dict):
+        decoder = alert['decoder']
+        for key in ['name', 'parent', 'ftscomment']:
+            if key in decoder and decoder[key] is not None:
+                decoder[key] = str(decoder[key])
+
+    # Predecoder
+    if 'predecoder' in alert and isinstance(alert['predecoder'], dict):
+        predecoder = alert['predecoder']
+        for key in ['program_name', 'timestamp', 'hostname']:
+            if key in predecoder and predecoder[key] is not None:
+                predecoder[key] = str(predecoder[key])
+
+    # Data (leave as-is, can be any dict)
+    return alert
+
 
 def run_enrichment_loop():
     """
@@ -69,7 +143,9 @@ def run_enrichment_loop():
 
             try:
                 alert = json.loads(line)
-                alert = fill_missing_fields(alert)  # <-- Ensure missing fields are filled for every alert
+
+                alert = fill_missing_fields(alert)
+                alert = normalize_alert_types(alert)
                 alert_id = alert.get("id") or f"{alert.get('timestamp')}_{alert.get('rule', {}).get('id')}"
                 if alert_id in seen:
                     continue
