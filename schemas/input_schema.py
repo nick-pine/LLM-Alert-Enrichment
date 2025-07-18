@@ -53,5 +53,7 @@ class WazuhAlertInput(BaseModel):
     full_log: Optional[str]
     decoder: Optional[Decoder]
     predecoder: Optional[Predecoder]
-    data: Optional[Dict[str, Any]]
     location: Optional[str]
+
+    class Config:
+        extra = "allow"  # Allow extra fields for future compatibility
