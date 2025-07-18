@@ -71,10 +71,18 @@ def push_to_elasticsearch(doc):
     """
     from config import ELASTICSEARCH_URL, ELASTIC_USER, ELASTIC_PASS, ENRICHED_INDEX
 
+    import datetime
+    def json_serial(obj):
+        if isinstance(obj, datetime.datetime):
+            return obj.isoformat()
+        raise TypeError(f"Type {type(obj)} not serializable")
+
     try:
+        # Serialize doc to JSON, handling datetime
+        doc_json = json.loads(json.dumps(doc, default=json_serial))
         response = requests.post(
             f"{ELASTICSEARCH_URL}/{ENRICHED_INDEX}/_doc",
-            json=doc,
+            json=doc_json,
             auth=(ELASTIC_USER, ELASTIC_PASS),
             verify=False
         )

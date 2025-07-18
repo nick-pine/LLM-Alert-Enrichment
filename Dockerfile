@@ -18,5 +18,5 @@ RUN pip install --upgrade pip \
 # Expose port if running a web server (optional)
 # EXPOSE 8000
 
-# Default command to run enrichment
-CMD ["python", "llm_enrichment.py"]
+# Default command to run FastAPI server
+CMD ["uvicorn", "api.api_server:app", "--host", "0.0.0.0", "--port", "8000"]
