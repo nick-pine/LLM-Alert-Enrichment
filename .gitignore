@@ -29,3 +29,6 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+
+# Project work log (local only)
+PROJECT_PROGRESS.md

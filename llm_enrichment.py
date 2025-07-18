@@ -78,13 +78,10 @@ def run_single_alert_file():
             print("==============================\n")
 
             # Send to Elasticsearch
+            from core.io import push_to_elasticsearch
             try:
-                # Use foolproof helper to get Elasticsearch client with proper SSL handling
-                es = get_elasticsearch_client()
-                # Use alert_id as the document ID for idempotency
-                doc_id = result_dict.get('alert_id')
-                es.index(index=ENRICHED_INDEX, id=doc_id, document=result_dict)
-                print(f"[INFO] Enriched alert sent to Elasticsearch index '{ENRICHED_INDEX}' (doc_id: {doc_id})")
+                push_to_elasticsearch(result_dict)
+                print(f"[INFO] Enriched alert sent to Elasticsearch via push_to_elasticsearch (alert_id: {result_dict.get('alert_id')})")
             except Exception as e:
                 print(f"[ERROR] Failed to send to Elasticsearch: {e}")
         except json.JSONDecodeError:

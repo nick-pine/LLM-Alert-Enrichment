@@ -12,3 +12,5 @@ requests
 yara-python
 # Add this to requirements.txt for Docker and venv compatibility
 elasticsearch==7.17.12
+fastapi
+uvicorn
