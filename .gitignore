@@ -1,11 +1,31 @@
 # Ignore environment variable files
 .env
+
 # Python cache and environment
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .env
+.env.*
+.venv/
+venv/
+
+# Logs
+logs/
+*.log
+
+# Type checking and test cache
+.mypy_cache/
+.pytest_cache/
+
+# Coverage
+.coverage*
+
+# Databases
+*.sqlite3
+*.db
+
 
 # VS Code settings
 .vscode/

@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  llm-enrichment-api:
+    build: .
+    container_name: llm_enrichment_api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    depends_on:
+      - elasticsearch
+    environment:
+      - LLM_PROVIDER=ollama
+      - ELASTICSEARCH_HOST=elasticsearch
+      # Add other required env vars here
+    volumes:
+      - ./logs:/app/logs
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+volumes:
+  esdata:
