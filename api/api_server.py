@@ -13,35 +13,25 @@ app = FastAPI()
 @app.post("/v1/enrich", response_model=EnrichResponse, responses={400: {"model": ErrorResponse}})
 def enrich_alert(request: EnrichRequest):
     try:
+        from providers.gemini import query_gemini
         alert = fill_missing_fields(request.alert)
         alert = normalize_alert_types(alert)
-        alert_id = alert.get("id", "unknown")
-        timestamp = datetime.datetime.utcnow().isoformat()
-        # Dummy enrichment for demo
-        enrichment = Enrichment(
-            summary_text="Enriched summary",
-            tags=["test"],
-            risk_score=42,
-            false_positive_likelihood=0.1,
-            alert_category="demo",
-            remediation_steps=["step1", "step2"],
-            related_cves=[],
-            external_refs=[],
-            llm_model_version="demo-v1",
-            enriched_by="demo",
-            enrichment_duration_ms=100,
-            yara_matches=[],
-            raw_llm_response=None,
-            error=None
-        )
+        # Call real Gemini enrichment
+        enriched = query_gemini(alert)
         # Prepare document for Elasticsearch (flattened for compatibility)
         es_doc = {
-            "alert_id": alert_id,
-            "timestamp": timestamp,
-            "alert": alert,
-            "enrichment": enrichment.dict() if hasattr(enrichment, 'dict') else dict(enrichment)
+            "alert_id": enriched.alert_id,
+            "timestamp": enriched.timestamp.isoformat() if hasattr(enriched.timestamp, 'isoformat') else str(enriched.timestamp),
+            "alert": enriched.alert.model_dump() if hasattr(enriched.alert, 'model_dump') else dict(enriched.alert),
+            "enrichment": enriched.enrichment.model_dump() if hasattr(enriched.enrichment, 'model_dump') else dict(enriched.enrichment)
         }
         push_to_elasticsearch(es_doc)
-        return EnrichResponse(alert_id=alert_id, timestamp=timestamp, alert=alert, enrichment=enrichment)
+        # Convert timestamp to string for API response
+        return EnrichResponse(
+            alert_id=enriched.alert_id,
+            timestamp=es_doc["timestamp"],
+            alert=es_doc["alert"],
+            enrichment=es_doc["enrichment"]
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
