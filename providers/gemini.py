@@ -64,7 +64,8 @@ def clean_llm_response(text: str) -> str:
 
 def query_gemini(alert: dict, model: str = "gemini-2.0-flash") -> EnrichedAlertOutput:
     import sys
-    # Debug prints removed for cleaner output
+    print(f"[DEBUG] GEMINI_API_KEY: {GEMINI_API_KEY}")
+    sys.stdout.flush()
     """
     Enriches a Wazuh alert using the Gemini API.
 
