@@ -12,21 +12,38 @@ class Decoder(BaseModel):
     parent: Optional[str]
     ftscomment: Optional[str]
 
+
+class Rule(BaseModel):
+    id: str = Field(..., description="Rule ID")
+    level: int = Field(..., description="Alert level")
+    firedtimes: Optional[int]
+    mail: Optional[bool]
+    pci_dss: Optional[list]
+    hipaa: Optional[list]
+    tsc: Optional[list]
+    description: Optional[str]
+    groups: Optional[list]
+    nist_800_53: Optional[list]
+    gpg13: Optional[list]
+    gdpr: Optional[list]
+
 class WazuhAlert(BaseModel):
     id: str
     timestamp: str
-    rule_id: Optional[int]
-    level: Optional[int]
+    rule: Rule
     full_log: Optional[str]
     predecoder: Optional[Predecoder]
     decoder: Optional[Decoder]
-    # Add other fields as needed
+    agent: Optional[Dict[str, Any]]
+    manager: Optional[Dict[str, Any]]
+    data: Optional[Dict[str, Any]]
+    input: Optional[Dict[str, Any]]
+    location: Optional[str]
 
     @validator('timestamp', pre=True, always=True)
     def validate_timestamp(cls, v):
         if not v or not isinstance(v, str):
             return datetime.utcnow().isoformat() + "Z"
-        # Accept ISO format only
         import re
         if not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", v):
             return datetime.utcnow().isoformat() + "Z"
@@ -36,16 +53,4 @@ class WazuhAlert(BaseModel):
     def validate_id(cls, v):
         if not v or not isinstance(v, str):
             raise ValueError("Missing or invalid alert id")
-        return v
-
-    @validator('level')
-    def validate_level(cls, v):
-        if v is not None and (v < 1 or v > 16):
-            raise ValueError("Alert level must be between 1 and 16")
-        return v
-
-    @validator('rule_id')
-    def validate_rule_id(cls, v):
-        if v is not None and v < 0:
-            raise ValueError("Rule ID must be positive")
         return v
