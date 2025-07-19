@@ -78,30 +78,69 @@ def push_to_elasticsearch(doc):
         raise TypeError(f"Type {type(obj)} not serializable")
 
     import time
+    import re
     start_time = time.time()
-    try:
-        # Ensure document is wrapped in "alert" field
-        if "alert" not in doc:
-            doc = {"alert": doc}
-        # Remove reserved OpenSearch fields from alert
-        reserved = ["_index", "_id", "_version", "_score", "_source", "fields", "sort", "highlight"]
-        for field in reserved:
-            if field in doc["alert"]:
-                del doc["alert"][field]
-        doc_json = json.loads(json.dumps(doc, default=json_serial))
-        log(f"[DEBUG] Elasticsearch payload: {json.dumps(doc_json)[:1000]}", tag="i")
-        response = requests.post(
-            f"{ELASTICSEARCH_URL}/{ENRICHED_INDEX}/_doc",
-            json=doc_json,
-            auth=(ELASTIC_USER, ELASTIC_PASS),
-            verify=False
-        )
-        log(f"[DEBUG] Elasticsearch response status: {response.status_code}", tag="i")
-        log(f"[DEBUG] Elasticsearch response body: {response.text[:1000]}", tag="i")
-        response.raise_for_status()
-        elapsed = int((time.time() - start_time) * 1000)
-        log(f"Alert {doc.get('alert_id', doc.get('alert', {}).get('alert_id', 'unknown'))} pushed to Elasticsearch in {elapsed}ms", tag="\u2713")
-    except Exception as e:
-        import traceback
-        log(f"Elasticsearch push failed: {e}", tag="!")
-        log(f"[DEBUG] Elasticsearch exception traceback: {traceback.format_exc()}", tag="!")
+    max_retries = 3
+    attempt = 0
+    success = False
+    # --- Schema and field validation ---
+    if "alert" not in doc:
+        doc = {"alert": doc}
+    reserved = ["_index", "_id", "_version", "_score", "_source", "fields", "sort", "highlight"]
+    for field in reserved:
+        if field in doc["alert"]:
+            del doc["alert"][field]
+    # Validate all date fields (alert.timestamp, alert.predecoder.timestamp, etc.)
+    date_fields = ["timestamp"]
+    if "predecoder" in doc["alert"]:
+        date_fields.append("predecoder.timestamp")
+    for field in date_fields:
+        # Support nested fields
+        if "." in field:
+            parent, child = field.split(".", 1)
+            if parent in doc["alert"] and (child in doc["alert"][parent]):
+                val = doc["alert"][parent][child]
+                if not val or not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", str(val)):
+                    doc["alert"][parent][child] = datetime.datetime.utcnow().isoformat() + "Z"
+        else:
+            val = doc["alert"].get(field)
+            if not val or not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", str(val)):
+                doc["alert"][field] = datetime.datetime.utcnow().isoformat() + "Z"
+    # Validate critical fields
+    critical_fields = ["id"]
+    for field in critical_fields:
+        if field not in doc["alert"] or not doc["alert"][field]:
+            log(f"[WARNING] Missing or empty critical field: {field}", tag="!")
+            return
+    # --- Retry logic for transient errors ---
+    while attempt < max_retries and not success:
+        try:
+            doc_json = json.loads(json.dumps(doc, default=json_serial))
+            log(f"[DEBUG] Elasticsearch payload: {json.dumps(doc_json)[:1000]}", tag="i")
+            response = requests.post(
+                f"{ELASTICSEARCH_URL}/{ENRICHED_INDEX}/_doc",
+                json=doc_json,
+                auth=(ELASTIC_USER, ELASTIC_PASS),
+                verify=False
+            )
+            log(f"[DEBUG] Elasticsearch response status: {response.status_code}", tag="i")
+            log(f"[DEBUG] Elasticsearch response body: {response.text[:1000]}", tag="i")
+            response.raise_for_status()
+            elapsed = int((time.time() - start_time) * 1000)
+            log(f"Alert {doc.get('alert_id', doc.get('alert', {}).get('alert_id', 'unknown'))} pushed to Elasticsearch in {elapsed}ms", tag="\u2713")
+            success = True
+        except requests.exceptions.RequestException as e:
+            import traceback
+            log(f"Elasticsearch push failed (attempt {attempt+1}): {e}", tag="!")
+            log(f"[DEBUG] Elasticsearch exception traceback: {traceback.format_exc()}", tag="!")
+            log(f"[DEBUG] Failed payload: {json.dumps(doc, default=json_serial)[:1000]}", tag="!")
+            attempt += 1
+            time.sleep(2)
+    if not success:
+        # Dead letter queue: write failed doc to file
+        try:
+            with open("dead_letter_queue.jsonl", "a") as f:
+                f.write(json.dumps(doc, default=json_serial) + "\n")
+            log("Document written to dead_letter_queue.jsonl after repeated failures.", tag="!")
+        except Exception as e:
+            log(f"Failed to write to dead letter queue: {e}", tag="!")
