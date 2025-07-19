@@ -27,19 +27,20 @@ def fill_missing_fields(alert):
     return alert
 
 
-# To test with a real alert JSON file, load and preprocess it:
+
+# Load and preprocess alert, then wrap for API compatibility
 try:
     with open("sample_alert.json", "r", encoding="utf-8") as f:
         alert_json = json.load(f)
         # If the alert is wrapped in _source (Kibana export), extract it
         if '_source' in alert_json:
-            sample_alert = alert_json['_source']
+            alert_obj = alert_json['_source']
         else:
-            sample_alert = alert_json
-        sample_alert = fill_missing_fields(sample_alert)
+            alert_obj = alert_json
+        alert_obj = fill_missing_fields(alert_obj)
 except Exception:
     # Fallback to the original hardcoded sample if file not found or invalid
-    sample_alert = {
+    alert_obj = {
         "id": "test-1",
         "timestamp": "2025-07-15T12:00:00Z",
         "rule": {
@@ -78,7 +79,13 @@ except Exception:
     }
 
 
-result = query_gemini(sample_alert)  # or query_ollama, query_openai, etc.
+# Handle both already-wrapped and unwrapped alerts
+if isinstance(alert_obj, dict) and "alert" in alert_obj and isinstance(alert_obj["alert"], dict):
+    sample_alert = alert_obj
+else:
+    sample_alert = {"alert": alert_obj}
+
+result = query_gemini(sample_alert["alert"])  # or query_ollama, query_openai, etc.
 
 
 result_dict = result.model_dump()
