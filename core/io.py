@@ -77,6 +77,8 @@ def push_to_elasticsearch(doc):
             return obj.isoformat()
         raise TypeError(f"Type {type(obj)} not serializable")
 
+    import time
+    start_time = time.time()
     try:
         # Ensure document is wrapped in "alert" field
         if "alert" not in doc:
@@ -87,13 +89,19 @@ def push_to_elasticsearch(doc):
             if field in doc["alert"]:
                 del doc["alert"][field]
         doc_json = json.loads(json.dumps(doc, default=json_serial))
+        log(f"[DEBUG] Elasticsearch payload: {json.dumps(doc_json)[:1000]}", tag="i")
         response = requests.post(
             f"{ELASTICSEARCH_URL}/{ENRICHED_INDEX}/_doc",
             json=doc_json,
             auth=(ELASTIC_USER, ELASTIC_PASS),
             verify=False
         )
+        log(f"[DEBUG] Elasticsearch response status: {response.status_code}", tag="i")
+        log(f"[DEBUG] Elasticsearch response body: {response.text[:1000]}", tag="i")
         response.raise_for_status()
-        log(f"Alert {doc.get('alert_id', doc.get('alert', {}).get('alert_id', 'unknown'))} pushed to Elasticsearch", tag="\u2713")
+        elapsed = int((time.time() - start_time) * 1000)
+        log(f"Alert {doc.get('alert_id', doc.get('alert', {}).get('alert_id', 'unknown'))} pushed to Elasticsearch in {elapsed}ms", tag="\u2713")
     except Exception as e:
+        import traceback
         log(f"Elasticsearch push failed: {e}", tag="!")
+        log(f"[DEBUG] Elasticsearch exception traceback: {traceback.format_exc()}", tag="!")
