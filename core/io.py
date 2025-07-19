@@ -78,7 +78,9 @@ def push_to_elasticsearch(doc):
         raise TypeError(f"Type {type(obj)} not serializable")
 
     try:
-        # Serialize doc to JSON, handling datetime
+        # Ensure document is wrapped in "alert" field
+        if "alert" not in doc:
+            doc = {"alert": doc}
         doc_json = json.loads(json.dumps(doc, default=json_serial))
         response = requests.post(
             f"{ELASTICSEARCH_URL}/{ENRICHED_INDEX}/_doc",
@@ -87,6 +89,6 @@ def push_to_elasticsearch(doc):
             verify=False
         )
         response.raise_for_status()
-        log(f"Alert {doc['alert_id']} pushed to Elasticsearch", tag="\u2713")
+        log(f"Alert {doc.get('alert_id', doc.get('alert', {}).get('alert_id', 'unknown'))} pushed to Elasticsearch", tag="\u2713")
     except Exception as e:
         log(f"Elasticsearch push failed: {e}", tag="!")
