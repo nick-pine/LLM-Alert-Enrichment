@@ -83,35 +83,29 @@ def push_to_elasticsearch(doc):
     max_retries = 3
     attempt = 0
     success = False
-    # --- Schema and field validation ---
+    # --- Bulletproof schema validation with Pydantic ---
+    from core.wazuh_alert_schema import WazuhAlert
     if "alert" not in doc:
         doc = {"alert": doc}
     reserved = ["_index", "_id", "_version", "_score", "_source", "fields", "sort", "highlight"]
     for field in reserved:
         if field in doc["alert"]:
             del doc["alert"][field]
-    # Validate all date fields (alert.timestamp, alert.predecoder.timestamp, etc.)
-    date_fields = ["timestamp"]
-    if "predecoder" in doc["alert"]:
-        date_fields.append("predecoder.timestamp")
-    for field in date_fields:
-        # Support nested fields
-        if "." in field:
-            parent, child = field.split(".", 1)
-            if parent in doc["alert"] and (child in doc["alert"][parent]):
-                val = doc["alert"][parent][child]
-                if not val or not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", str(val)):
-                    doc["alert"][parent][child] = datetime.datetime.utcnow().isoformat() + "Z"
-        else:
-            val = doc["alert"].get(field)
-            if not val or not re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}", str(val)):
-                doc["alert"][field] = datetime.datetime.utcnow().isoformat() + "Z"
-    # Validate critical fields
-    critical_fields = ["id"]
-    for field in critical_fields:
-        if field not in doc["alert"] or not doc["alert"][field]:
-            log(f"[WARNING] Missing or empty critical field: {field}", tag="!")
-            return
+    # Validate with Pydantic model
+    try:
+        validated_alert = WazuhAlert(**doc["alert"])
+        doc["alert"] = validated_alert.model_dump()
+    except Exception as e:
+        log(f"[WARNING] Alert schema validation failed: {e}", tag="!")
+        log(f"[DEBUG] Failed payload due to schema validation: {json.dumps(doc, default=json_serial)[:1000]}", tag="!")
+        # Dead letter queue for schema failures
+        try:
+            with open("dead_letter_queue.jsonl", "a") as f:
+                f.write(json.dumps(doc, default=json_serial) + "\n")
+            log("Document written to dead_letter_queue.jsonl after schema validation failure.", tag="!")
+        except Exception as e:
+            log(f"Failed to write to dead letter queue: {e}", tag="!")
+        return
     # --- Retry logic for transient errors ---
     while attempt < max_retries and not success:
         try:
