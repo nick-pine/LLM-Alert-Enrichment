@@ -81,6 +81,11 @@ def push_to_elasticsearch(doc):
         # Ensure document is wrapped in "alert" field
         if "alert" not in doc:
             doc = {"alert": doc}
+        # Remove reserved OpenSearch fields from alert
+        reserved = ["_index", "_id", "_version", "_score", "_source", "fields", "sort", "highlight"]
+        for field in reserved:
+            if field in doc["alert"]:
+                del doc["alert"][field]
         doc_json = json.loads(json.dumps(doc, default=json_serial))
         response = requests.post(
             f"{ELASTICSEARCH_URL}/{ENRICHED_INDEX}/_doc",
