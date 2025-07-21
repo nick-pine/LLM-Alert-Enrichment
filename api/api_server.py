@@ -3,7 +3,7 @@ FastAPI server for the enrichment API.
 Run with: uvicorn api.api_server:app --reload
 """
 from fastapi import FastAPI, HTTPException, Request
-from api.api_schema import EnrichRequest, EnrichResponse, ErrorResponse, Enrichment
+from schemas.api_schema import EnrichRequest, EnrichResponse, ErrorResponse, Enrichment
 from core.preprocessing import fill_missing_fields, normalize_alert_types
 from core.io import push_to_elasticsearch
 import datetime
@@ -15,9 +15,14 @@ async def enrich_alert(request: Request):
     try:
         from providers.gemini import query_gemini
         body = await request.json()
-        # Accept both wrapped and unwrapped formats
-        if isinstance(body, dict) and "alert" in body and isinstance(body["alert"], dict):
-            alert = body["alert"]
+        # Accept wrapped, unwrapped, and ES/Kibana formats
+        if isinstance(body, dict):
+            if "alert" in body and isinstance(body["alert"], dict):
+                alert = body["alert"]
+            elif "_source" in body and isinstance(body["_source"], dict):
+                alert = body["_source"]
+            else:
+                alert = body
         else:
             alert = body
         alert = fill_missing_fields(alert)

@@ -85,12 +85,14 @@ def run_enrichment_loop():
                 try:
                     validate_enriched_output(output)
                 except Exception as e:
-                    log(f"[FALLBACK] Output schema validation failed: {e}", tag="!")
+                    import traceback
+                    log(f"[FALLBACK] Output schema validation failed: {e}\nTraceback: {traceback.format_exc()}", tag="!")
                     # Still write and push the output, even if not schema-valid
                 write_enriched_output(ENRICHED_OUTPUT_PATH, output)
                 push_to_elasticsearch(output)
                 time.sleep(1.5)
 
             except Exception as e:
-                log(f"{e.__class__.__name__}: {e}", tag="!")
+                import traceback
+                log(f"{e.__class__.__name__}: {e}\nTraceback: {traceback.format_exc()}", tag="!")
                 log(f"[DEBUG] Bad line: {line[:300]}...", tag="DEBUG")

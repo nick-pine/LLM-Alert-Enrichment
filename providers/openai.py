@@ -61,7 +61,7 @@ def query_openai(alert: dict, model: str = "gpt-4") -> EnrichedAlertOutput:
 
     prompt = template.format(
         alert_json=json.dumps(alert_obj.model_dump(), indent=2),
-        yara_results=json.dumps(yara_results, indent=2) if yara_results else "None"
+        # Always keep yara_results as a list for schema consistency
     )
 
 

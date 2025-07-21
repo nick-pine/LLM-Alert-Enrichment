@@ -1,76 +1,51 @@
 
 {
-  "_index": "wazuh-alerts-4.x-2025.07.16",
-  "_id": "5w_HE5gBibHBmv8EwCRE",
-  "_version": 1,
-  "_score": null,
-  "_source": {
-    "input": {
-      "type": "log"
-    },
-    "agent": {
-      "name": "wazuh-server",
-      "id": "000"
-    },
-    "manager": {
-      "name": "wazuh-server"
-    },
-    "data": {
-      "sca": {
-        "score": "43",
-        "total_checks": "183",
-        "file": "cis_amazon_linux_2023.yml",
-        "policy_id": "cis_amazon_linux_2023",
-        "invalid": "6",
-        "description": "This document provides prescriptive guidance for establishing a secure configuration posture for Amazon Linux 2023 systems running on x86 and x64 platforms. This document was tested against Amazon Linux 2023.",
-        "scan_id": "1194565265",
-        "passed": "77",
-        "failed": "100",
-        "type": "summary",
-        "policy": "CIS Benchmark for Amazon Linux 2023 Benchmark v1.0.0."
-      }
-    },
-    "rule": {
-      "firedtimes": 1,
-      "mail": false,
-      "level": 7,
-      "pci_dss": [
-        "2.2"
-      ],
-      "tsc": [
-        "CC7.1",
-        "CC7.2"
-      ],
-      "description": "SCA summary: CIS Benchmark for Amazon Linux 2023 Benchmark v1.0.0.: Score less than 50% (43)",
-      "groups": [
-        "sca"
-      ],
-      "id": "19004",
-      "nist_800_53": [
-        "CM.1"
-      ],
-      "gdpr": [
-        "IV_35.7.d"
-      ]
-    },
-    "location": "sca",
-    "decoder": {
-      "name": "sca"
-    },
-    "id": "1752678499.8227",
-    "timestamp": "2025-07-16T15:08:19.235+0000"
+  "id": "malware-20250721-001",
+  "timestamp": "2025-07-21T14:32:00Z",
+  "rule": {
+    "id": "100010",
+    "description": "Malware detected by YARA rule: MAL_WIPER_Unknown_Jun25_RID2F13",
+    "level": 12,
+    "firedtimes": 1,
+    "mail": true,
+    "groups": ["malware", "yara", "critical"],
+    "pci_dss": ["10.6.1"],
+    "gpg13": ["4.2", "7.1"],
+    "gdpr": ["IV_32.2"],
+    "hipaa": ["164.308.a"],
+    "nist_800_53": ["SI-4", "SI-7"],
+    "tsc": ["CC7.2"],
+    "mitre": {
+      "id": ["T1059", "T1486"],
+      "technique": ["Command and Scripting Interpreter", "Data Encrypted for Impact"]
+    }
   },
-  "fields": {
-    "timestamp": [
-      "2025-07-16T15:08:19.235Z"
-    ]
+  "agent": {
+    "id": "002",
+    "name": "prod-endpoint-12"
   },
-  "highlight": {
-    "manager.name": [
-      "@opensearch-dashboards-highlighted-field@wazuh-server@/opensearch-dashboards-highlighted-field@"
-    ]
+  "manager": {
+    "name": "wazuh-manager"
   },
-  "sort": [
-    1752678499235
-  ]
+  "full_log": "YARA rule MAL_WIPER_Unknown_Jun25_RID2F13 matched in file /tmp/suspicious.exe. File quarantined.",
+  "decoder": {
+    "name": "yara",
+    "parent": "malware",
+    "ftscomment": "Critical YARA malware match"
+  },
+  "predecoder": {
+    "hostname": "prod-endpoint-12",
+    "program_name": "yara-scan",
+    "timestamp": "2025-07-21T14:32:00Z"
+  },
+  "location": "/tmp/suspicious.exe",
+  "data": {
+    "yara_rule": "MAL_WIPER_Unknown_Jun25_RID2F13",
+    "file_path": "/tmp/suspicious.exe",
+    "action": "quarantined",
+    "malware_family": "Unknown Wiper"
+  },
+  "input": {
+    "type": "file"
+  }
 }

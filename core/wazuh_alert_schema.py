@@ -27,18 +27,19 @@ class Rule(BaseModel):
     gpg13: Optional[list]
     gdpr: Optional[list]
 
+
 class WazuhAlert(BaseModel):
     id: str
     timestamp: str
     rule: Rule
-    full_log: Optional[str]
-    predecoder: Optional[Predecoder]
-    decoder: Optional[Decoder]
-    agent: Optional[Dict[str, Any]]
-    manager: Optional[Dict[str, Any]]
-    data: Optional[Dict[str, Any]]
-    input: Optional[Dict[str, Any]]
-    location: Optional[str]
+    full_log: Optional[str] = None
+    predecoder: Optional[Predecoder] = None
+    decoder: Optional[Decoder] = None
+    agent: Optional[Dict[str, Any]] = None
+    manager: Optional[Dict[str, Any]] = None
+    data: Optional[Dict[str, Any]] = None
+    input: Optional[Dict[str, Any]] = None
+    location: Optional[str] = None
 
     @validator('timestamp', pre=True, always=True)
     def validate_timestamp(cls, v):

@@ -125,10 +125,3 @@ for match in enrich.get('yara_matches', []):
 print("==============================\n")
 
 # Uncomment below to display the original alert in the output
-# print("========== ORIGINAL ALERT ==========")
-# print(json.dumps(result_dict['alert'], indent=2, default=str))
-# print("====================================\n")
-# print("========== RAW RESPONSE ==========")
-# # Uncomment below to print the raw LLM provider response for debugging
-# print("[RAW LLM RESPONSE]", result)
-# print("====================================\n")

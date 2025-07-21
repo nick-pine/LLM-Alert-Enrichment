@@ -3,8 +3,6 @@
 Simple logger utility for the LLM enrichment project.
 Prints messages with tags for easy identification.
 """
-# core/logger.py
-
 
 import logging
 import sys

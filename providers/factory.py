@@ -1,9 +1,21 @@
 from config import LLM_PROVIDER
 
-from providers.gemini import query_gemini
-from providers.ollama import query_ollama
-from providers.claude import query_claude
-from providers.openai import query_openai
+try:
+    from providers.gemini import query_gemini
+except ImportError:
+    query_gemini = None
+try:
+    from providers.ollama import query_ollama
+except ImportError:
+    query_ollama = None
+try:
+    from providers.claude import query_claude
+except ImportError:
+    query_claude = None
+try:
+    from providers.openai import query_openai
+except ImportError:
+    query_openai = None
 
 def get_provider():
     if LLM_PROVIDER == "gemini":
