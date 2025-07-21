@@ -67,3 +67,4 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/v1/enrich" -Method POST -Headers @
 ```
 
 Or use Swagger UI at http://127.0.0.1:8000/docs
+http://localhost:8000/openapi.json raw OpenAPI JSON spec

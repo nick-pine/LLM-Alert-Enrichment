@@ -1,6 +1,10 @@
-
-from providers.gemini import query_gemini  # You can swap for query_openai, query_claude, or query_ollama
+from core.factory import get_llm_query_function
 import json
+import time
+import requests
+import sys
+
+USE_API = True  # Set to False for local enrichment
 
 def fill_missing_fields(alert):
     alert.setdefault("full_log", "")
@@ -85,10 +89,28 @@ if isinstance(alert_obj, dict) and "alert" in alert_obj and isinstance(alert_obj
 else:
     sample_alert = {"alert": alert_obj}
 
-result = query_gemini(sample_alert["alert"])  # or query_ollama, query_openai, etc.
+if USE_API:
+    url = "http://localhost:8000/v1/enrich"  # Change if your API runs elsewhere
+    start = time.time()
+    response = requests.post(url, json=sample_alert)
+    latency = time.time() - start
+    print(f"API Status: {response.status_code}, Latency: {latency:.2f} seconds")
+    try:
+        result_dict = response.json()
+        enrich = result_dict.get('enrichment', {})
+        print(f"Token usage: {enrich.get('token_usage', 'N/A')}")
+    except Exception as e:
+        print(f"Error parsing API response: {e}")
+else:
+    query_llm = get_llm_query_function()
+    start = time.time()
+    result = query_llm(sample_alert["alert"])
+    latency = time.time() - start
+    result_dict = result.model_dump()
+    enrich = result_dict['enrichment']
+    print(f"Local enrichment latency: {latency:.2f} seconds")
+    print(f"Token usage: {enrich.get('token_usage', 'N/A')}")
 
-
-result_dict = result.model_dump()
 
 enrich = result_dict['enrichment']
 
@@ -124,4 +146,3 @@ for match in enrich.get('yara_matches', []):
     print(f"  - Rule: {match.get('rule','')}, Meta: {match.get('meta',{})}")
 print("==============================\n")
 
-# Uncomment below to display the original alert in the output

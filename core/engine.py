@@ -11,13 +11,13 @@ from config import (
     ALERT_LOG_PATH,
     ENRICHED_OUTPUT_PATH
 )
-from providers.factory import get_provider
+from core.factory import get_llm_query_function
 from utils.validation import validate_input_alert, validate_enriched_output
 from core.io import read_alert_log, write_enriched_output, push_to_elasticsearch
 from core.logger import log
 from core.preprocessing import fill_missing_fields, normalize_alert_types
 
-query_llm = get_provider()
+query_llm = get_llm_query_function()
 
 
 def run_enrichment_loop():
