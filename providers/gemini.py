@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from schemas.input_schema import WazuhAlertInput
 from schemas.output_schema import Enrichment, EnrichedAlertOutput
-from core.yara_integration import load_yara_rules, scan_alert_with_yara
 from providers.ollama import query_ollama
 from core.utils import load_prompt_template
 
@@ -56,24 +55,35 @@ def query_gemini(alert: dict, model: str = None) -> EnrichedAlertOutput:
     Returns:
         EnrichedAlertOutput: The enriched alert output schema.
     """
-    if model is None:
-        model = LLM_MODEL
-
+    model = model or LLM_MODEL  # Use provided model or fallback to default
+    yara_results = []  # Always defined first!
     raw_llm_response = None
+
     try:
         alert_obj = WazuhAlertInput(**alert)
     except Exception as e:
-        logger.error(f"Invalid alert schema: {e}")
-        raise ValueError(f"Invalid input alert format: {e}")
-
-    # Defensive YARA handling: always define yara_results
-    yara_results = []
-    try:
-        rules = load_yara_rules()
-        yara_results = scan_alert_with_yara(alert, rules)
-    except Exception as e:
-        logger.warning(f"YARA scan failed or no rules loaded: {e}")
-        yara_results = []
+        # Defensive: yara_results is always defined
+        fallback_enrichment = Enrichment(
+            summary_text=f"Enrichment failed: {e}",
+            tags=[],
+            risk_score=0,
+            false_positive_likelihood=1.0,
+            alert_category="Unknown",
+            remediation_steps=[],
+            related_cves=[],
+            external_refs=[],
+            llm_model_version=model,
+            enriched_by=f"{model}@gemini-api",
+            enrichment_duration_ms=0,
+            yara_matches=[],
+            raw_llm_response=raw_llm_response
+        )
+        return EnrichedAlertOutput(
+            alert_id=alert.get("id", "unknown-id"),
+            timestamp=datetime.now(timezone.utc),
+            alert=alert,
+            enrichment=fallback_enrichment
+        )
 
     try:
         template = load_prompt_template(PROMPT_TEMPLATE_PATH)
@@ -99,15 +109,20 @@ def query_gemini(alert: dict, model: str = None) -> EnrichedAlertOutput:
             json_text = clean_llm_response(raw_llm_response)
             try:
                 enrichment_data = json.loads(json_text)
+                # Normalize key if LLM returns 'yara_results'
+                if "yara_results" in enrichment_data and "yara_matches" not in enrichment_data:
+                    enrichment_data["yara_matches"] = enrichment_data.pop("yara_results")
+                enrichment_data["yara_matches"] = []
             except Exception as extract_exc:
                 logger.error(f"Gemini API extraction error: {extract_exc}")
                 enrichment_data = {}
 
+        # Always set yara_matches to a list
+        enrichment_data["yara_matches"] = enrichment_data.get("yara_matches", yara_results)
         enrichment_data.update({
             "llm_model_version": model,
             "enriched_by": f"{model}@gemini-api",
             "enrichment_duration_ms": int((time.time() - start) * 1000),
-            "yara_matches": yara_results,
             "raw_llm_response": raw_llm_response
         })
 
@@ -134,7 +149,7 @@ def query_gemini(alert: dict, model: str = None) -> EnrichedAlertOutput:
             llm_model_version=model,
             enriched_by=f"{model}@gemini-api",
             enrichment_duration_ms=0,
-            yara_matches=yara_results,
+            yara_matches=[],
             raw_llm_response=raw_llm_response
         )
         return EnrichedAlertOutput(

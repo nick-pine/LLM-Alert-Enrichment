@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from schemas.input_schema import WazuhAlertInput
 from schemas.output_schema import Enrichment, EnrichedAlertOutput
-from core.yara_integration import load_yara_rules, scan_alert_with_yara
+from core.yara_integration import get_yara_matches
 from providers.ollama import query_ollama
 from core.logger import log
 from core.utils import load_prompt_template
@@ -56,12 +56,7 @@ def query_claude(alert: dict, model: str = None) -> EnrichedAlertOutput:
         raise ValueError(f"Invalid input alert format: {e}")
 
     # YARA integration: load rules and scan alert
-    yara_results = []
-    try:
-        rules = load_yara_rules()
-        yara_results = scan_alert_with_yara(alert, rules)
-    except Exception as e:
-        log(f"YARA scan failed or no rules loaded: {e}", tag="yara")
+    yara_results = get_yara_matches(alert)
 
     try:
         template = load_prompt_template("templates/prompt_template.txt")
@@ -95,11 +90,13 @@ def query_claude(alert: dict, model: str = None) -> EnrichedAlertOutput:
             content = content.replace("```json", "").replace("```", "").strip()
 
         enrichment_data = json.loads(content)
+        if "yara_results" in enrichment_data and "yara_matches" not in enrichment_data:
+            enrichment_data["yara_matches"] = enrichment_data.pop("yara_results")
+        enrichment_data["yara_matches"] = enrichment_data.get("yara_matches", yara_results)
         enrichment_data.update({
             "llm_model_version": model,
             "enriched_by": f"{model}@claude-api",
             "enrichment_duration_ms": int((time.time() - start) * 1000),
-            "yara_matches": yara_results
         })
         enrichment = Enrichment(**enrichment_data)
         return EnrichedAlertOutput(

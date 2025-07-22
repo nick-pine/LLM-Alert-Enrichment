@@ -12,13 +12,13 @@ import requests
 from datetime import datetime, timezone
 from schemas.input_schema import WazuhAlertInput
 from schemas.output_schema import Enrichment, EnrichedAlertOutput
-from core.yara_integration import load_yara_rules, scan_alert_with_yara
+from core.yara_integration import get_yara_matches
 from core.utils import load_prompt_template  # shared utility
 
 logger = logging.getLogger("llm_enrichment")
 
 OLLAMA_API = os.getenv("OLLAMA_API", "http://localhost:11434/api/generate")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3:8b")
 PROMPT_TEMPLATE_PATH = "templates/prompt_template.txt"
 
 
@@ -37,7 +37,9 @@ def clean_llm_response(raw: str) -> str:
     return raw
 
 
-def query_ollama(alert: dict, model: str = None) -> EnrichedAlertOutput:
+from typing import Optional
+
+def query_ollama(alert: dict, model: Optional[str] = None) -> EnrichedAlertOutput:
     """
     Enriches a Wazuh alert using the Ollama API.
 
@@ -60,8 +62,7 @@ def query_ollama(alert: dict, model: str = None) -> EnrichedAlertOutput:
     # Defensive YARA handling: always define yara_results
     yara_results = []
     try:
-        rules = load_yara_rules()
-        yara_results = scan_alert_with_yara(alert, rules)
+        yara_results = get_yara_matches(alert)
     except Exception as e:
         logger.warning(f"YARA scan failed or no rules loaded: {e}")
         yara_results = []
@@ -84,11 +85,16 @@ def query_ollama(alert: dict, model: str = None) -> EnrichedAlertOutput:
         raw = response.json().get("response", "").strip()
         parsed_json = json.loads(clean_llm_response(raw))
 
+        # Normalize key if LLM returns 'yara_results'
+        if "yara_results" in parsed_json and "yara_matches" not in parsed_json:
+            parsed_json["yara_matches"] = parsed_json.pop("yara_results")
+        # Always set yara_matches to a list
+        parsed_json["yara_matches"] = parsed_json.get("yara_matches", yara_results)
+
         parsed_json.update({
             "llm_model_version": model,
             "enriched_by": f"{model}@ollama-api",
-            "enrichment_duration_ms": int((time.time() - start) * 1000),
-            "yara_matches": yara_results
+            "enrichment_duration_ms": int((time.time() - start) * 1000)
         })
         enrichment = Enrichment(**parsed_json)
         return EnrichedAlertOutput(

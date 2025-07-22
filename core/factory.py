@@ -2,9 +2,9 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
-
 def get_llm_query_function():
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
+    print(f"[DEBUG] LLM_PROVIDER selected: {LLM_PROVIDER}")
     if LLM_PROVIDER == "gemini":
         from providers.gemini import query_gemini
         return query_gemini

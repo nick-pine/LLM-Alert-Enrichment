@@ -6,6 +6,7 @@ from core.io import get_elasticsearch_client
 from config import ELASTICSEARCH_URL, ELASTIC_USER, ELASTIC_PASS, ENRICHED_INDEX
 from core.engine import run_enrichment_loop
 from config import ALERT_LOG_PATH
+from core.factory import get_llm_query_function
 
 
 def fill_missing_fields(alert):
@@ -41,8 +42,8 @@ def run_single_alert_file():
             if '_source' in alert:
                 alert = alert['_source']
             alert = fill_missing_fields(alert)
-            from providers.gemini import query_gemini  # or swap for other providers
-            result = query_gemini(alert)
+            query_llm = get_llm_query_function()
+            result = query_llm(alert)
             result_dict = result.model_dump()
             enrich = result_dict['enrichment']
 
