@@ -53,28 +53,34 @@ def run_enrichment_loop():
                 try:
                     validate_input_alert(alert)
                     log(f"Enriching alert {alert_id}...", tag="+")
-                    enriched = query_llm(alert, model=LLM_MODEL)
-                    enrichment_data = enriched.enrichment.model_dump()
-                    error_note = None
-                except Exception as e:
-                    # Fallback: create minimal enrichment with error info
-                    log(f"[FALLBACK] Creating minimal enrichment for alert {alert_id} due to validation error.", tag="!")
-                    enrichment_data = {
-                        "summary_text": None,
-                        "tags": [],
-                        "risk_score": None,
-                        "false_positive_likelihood": None,
-                        "alert_category": None,
-                        "remediation_steps": [],
-                        "related_cves": [],
-                        "external_refs": [],
-                        "llm_model_version": None,
-                        "enriched_by": None,
-                        "enrichment_duration_ms": None,
-                        "yara_matches": None,
-                        "raw_llm_response": None,
-                        "error": f"Validation or enrichment failed: {e}"
-                    }
+                    try:
+                        enriched = query_llm(alert, model=LLM_MODEL)
+                    except Exception as e:
+                        log(f"[WARNING] LLM provider failed: {e}", tag="!")
+                        enriched = None
+                    enrichment_data = None
+                    if enriched and hasattr(enriched, "enrichment"):
+                        enrichment_data = enriched.enrichment.model_dump()
+                        # Defensive: ensure yara_matches is always present
+                        if "yara_matches" not in enrichment_data or enrichment_data["yara_matches"] is None:
+                            enrichment_data["yara_matches"] = []
+                    else:
+                        enrichment_data = {
+                            "summary_text": None,
+                            "tags": [],
+                            "risk_score": None,
+                            "false_positive_likelihood": None,
+                            "alert_category": None,
+                            "remediation_steps": [],
+                            "related_cves": [],
+                            "external_refs": [],
+                            "llm_model_version": None,
+                            "enriched_by": None,
+                            "enrichment_duration_ms": None,
+                            "yara_matches": [],
+                            "raw_llm_response": None,
+                            "error": "Validation or enrichment failed"
+                        }
                 output = {
                     "alert_id": alert_id,
                     "timestamp": datetime.now(timezone.utc).isoformat(),

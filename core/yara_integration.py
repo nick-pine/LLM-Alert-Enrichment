@@ -44,3 +44,11 @@ def scan_alert_with_yara(alert: dict, rules: yara.Rules) -> List[Dict[str, Any]]
             "meta": match.meta
         })
     return results
+
+def safe_scan_alert_with_yara(alert: dict, rules) -> list:
+    try:
+        return scan_alert_with_yara(alert, rules)
+    except Exception as e:
+        import logging
+        logging.getLogger("llm_enrichment").warning(f"YARA scan failed: {e}")
+        return []

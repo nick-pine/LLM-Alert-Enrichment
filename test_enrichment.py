@@ -8,7 +8,6 @@ USE_API = True  # Set to False for local enrichment
 
 def fill_missing_fields(alert):
     alert.setdefault("full_log", "")
-    # Ensure predecoder exists and has required fields
     predecoder_defaults = {
         "program_name": "",
         "timestamp": "",
@@ -19,7 +18,6 @@ def fill_missing_fields(alert):
     else:
         for k, v in predecoder_defaults.items():
             alert["predecoder"].setdefault(k, v)
-
     alert.setdefault("decoder", {"name": "", "parent": "", "ftscomment": ""})
     if "decoder" in alert:
         alert["decoder"].setdefault("parent", "")
@@ -30,20 +28,16 @@ def fill_missing_fields(alert):
         alert["rule"].setdefault("mitre", {"id": [], "technique": []})
     return alert
 
-
-
 # Load and preprocess alert, then wrap for API compatibility
 try:
     with open("sample_alert.json", "r", encoding="utf-8") as f:
         alert_json = json.load(f)
-        # If the alert is wrapped in _source (Kibana export), extract it
         if '_source' in alert_json:
             alert_obj = alert_json['_source']
         else:
             alert_obj = alert_json
         alert_obj = fill_missing_fields(alert_obj)
 except Exception:
-    # Fallback to the original hardcoded sample if file not found or invalid
     alert_obj = {
         "id": "test-1",
         "timestamp": "2025-07-15T12:00:00Z",
@@ -82,46 +76,39 @@ except Exception:
         "data": {"message": "This is a test alert with malware present."}
     }
 
-
-# Handle both already-wrapped and unwrapped alerts
 if isinstance(alert_obj, dict) and "alert" in alert_obj and isinstance(alert_obj["alert"], dict):
     sample_alert = alert_obj
 else:
     sample_alert = {"alert": alert_obj}
 
 if USE_API:
-    url = "http://localhost:8000/v1/enrich"  # Change if your API runs elsewhere
-    start = time.time()
+    url = "http://localhost:8000/v1/enrich"
     response = requests.post(url, json=sample_alert)
-    latency = time.time() - start
-    print(f"API Status: {response.status_code}, Latency: {latency:.2f} seconds")
+    print(f"API Status: {response.status_code}")
     try:
         result_dict = response.json()
         enrich = result_dict.get('enrichment', {})
-        print(f"Token usage: {enrich.get('token_usage', 'N/A')}")
+        # Defensive: ensure yara_matches is always a list
+        if "yara_matches" not in enrich or enrich["yara_matches"] is None:
+            enrich["yara_matches"] = []
     except Exception as e:
         print(f"Error parsing API response: {e}")
+        sys.exit(1)
 else:
     query_llm = get_llm_query_function()
-    start = time.time()
     result = query_llm(sample_alert["alert"])
-    latency = time.time() - start
     result_dict = result.model_dump()
     enrich = result_dict['enrichment']
-    print(f"Local enrichment latency: {latency:.2f} seconds")
-    print(f"Token usage: {enrich.get('token_usage', 'N/A')}")
-
-
-enrich = result_dict['enrichment']
+    if "yara_matches" not in enrich or enrich["yara_matches"] is None:
+        enrich["yara_matches"] = []
 
 print("\n==============================")
 print("=== Enriched Alert Summary ===")
 print("==============================")
-print(f"Alert ID: {result_dict['alert_id']}")
-print(f"Timestamp: {result_dict['timestamp']}")
+print(f"Alert ID: {result_dict.get('alert_id', 'N/A')}")
+print(f"Timestamp: {result_dict.get('timestamp', 'N/A')}")
 print("------------------------------")
 
-enrich = result_dict['enrichment']
 print("\n========== ENRICHMENT ==========")
 print(f"Summary:\n  {enrich.get('summary_text','')}")
 print("------------------------------")
