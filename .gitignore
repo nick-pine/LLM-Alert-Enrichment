@@ -56,3 +56,5 @@ PROJECT_PROGRESS.md
 
 yay_rules/
 valhalla/rules.yar
+
+dead_letter_queue.jsonl

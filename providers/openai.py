@@ -14,7 +14,7 @@ from schemas.output_schema import Enrichment, EnrichedAlertOutput
 from providers.ollama import query_ollama
 from core.logger import log
 from core.utils import load_prompt_template
-from core.yara_integration import load_yara_rules, scan_alert_with_yara
+from core.yara_integration import get_yara_matches
 import logging
 
 load_dotenv()
@@ -52,12 +52,7 @@ def query_openai(alert: dict, model: str = None) -> EnrichedAlertOutput:
         raise ValueError(f"Invalid input alert format: {e}")
 
     # YARA integration: load rules and scan alert
-    yara_results = []
-    try:
-        rules = load_yara_rules()
-        yara_results = scan_alert_with_yara(alert, rules)
-    except Exception as e:
-        log(f"[!] YARA scan failed or no rules loaded: {e}", tag="yara")
+    yara_results = get_yara_matches(alert)
 
     # Load prompt template and include YARA results if present
     try:
@@ -90,11 +85,13 @@ def query_openai(alert: dict, model: str = None) -> EnrichedAlertOutput:
             content = content.replace("```json", "").replace("```", "").strip()
 
         enrichment_data = json.loads(content)
+        if "yara_results" in enrichment_data and "yara_matches" not in enrichment_data:
+            enrichment_data["yara_matches"] = enrichment_data.pop("yara_results")
+        enrichment_data["yara_matches"] = enrichment_data.get("yara_matches", yara_results)
         enrichment_data.update({
             "llm_model_version": model,
             "enriched_by": f"{model}@openai-api",
             "enrichment_duration_ms": int((time.time() - start) * 1000),
-            "yara_matches": yara_results
         })
         enrichment = Enrichment(**enrichment_data)
         return EnrichedAlertOutput(

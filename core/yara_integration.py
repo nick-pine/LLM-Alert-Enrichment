@@ -52,3 +52,16 @@ def safe_scan_alert_with_yara(alert: dict, rules) -> list:
         import logging
         logging.getLogger("llm_enrichment").warning(f"YARA scan failed: {e}")
         return []
+
+def get_yara_matches(alert: dict, rules_path: str = "yara_rules/") -> list:
+    """
+    Defensive YARA scan for any alert.
+    Always returns a list, never raises.
+    """
+    try:
+        rules = load_yara_rules(rules_path)
+        return scan_alert_with_yara(alert, rules)
+    except Exception as e:
+        import logging
+        logging.getLogger("llm_enrichment").warning(f"YARA scan failed or no rules loaded: {e}")
+        return []

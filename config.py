@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "ollama")
 LLM_MODEL = os.getenv("LLM_MODEL", "gemini-2.0-flash")
 
 ALERT_LOG_PATH = os.getenv("ALERT_LOG_PATH", "/var/ossec/logs/alerts/alerts.json")
