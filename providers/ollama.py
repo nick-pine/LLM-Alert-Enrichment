@@ -47,10 +47,6 @@ def query_ollama(alert: dict, model: str = None) -> EnrichedAlertOutput:
 
     Returns:
         EnrichedAlertOutput: The enriched alert output schema.
-
-    Raises:
-        ValueError: If the input alert format is invalid.
-        RuntimeError: If the prompt template cannot be loaded.
     """
     if model is None:
         model = os.getenv("OLLAMA_MODEL", "phi3:mini")
@@ -61,13 +57,14 @@ def query_ollama(alert: dict, model: str = None) -> EnrichedAlertOutput:
         logger.error(f"Invalid input alert format: {e}")
         raise ValueError(f"Invalid input alert format: {e}")
 
-    # YARA integration: load rules and scan alert
+    # Defensive YARA handling: always define yara_results
     yara_results = []
     try:
         rules = load_yara_rules()
         yara_results = scan_alert_with_yara(alert, rules)
     except Exception as e:
         logger.warning(f"YARA scan failed or no rules loaded: {e}")
+        yara_results = []
 
     try:
         template = load_prompt_template(PROMPT_TEMPLATE_PATH)
@@ -107,25 +104,27 @@ def query_ollama(alert: dict, model: str = None) -> EnrichedAlertOutput:
         logger.error(f"Ollama API request failed: {e}")
     except Exception as e:
         logger.error(f"Ollama enrichment error: {e}")
-        fallback = Enrichment(
-            summary_text=f"Ollama enrichment failed.",
-            tags=[],
-            risk_score=0,
-            false_positive_likelihood=1.0,
-            alert_category="Unknown",
-            remediation_steps=[],
-            related_cves=[],
-            external_refs=[],
-            llm_model_version=model,
-            enriched_by=f"{model}@ollama-api",
-            enrichment_duration_ms=0,
-            yara_matches=yara_results
-        )
+    # Defensive: ensure yara_results is always defined
+    fallback = Enrichment(
+        summary_text=f"Ollama enrichment failed.",
+        tags=[],
+        risk_score=0,
+        false_positive_likelihood=1.0,
+        alert_category="Unknown",
+        remediation_steps=[],
+        related_cves=[],
+        external_refs=[],
+        llm_model_version=model,
+        enriched_by=f"{model}@ollama-api",
+        enrichment_duration_ms=0,
+        yara_matches=yara_results,
+        raw_llm_response=None
+    )
 
-        return EnrichedAlertOutput(
-            alert_id=alert.get("id", "unknown-id"),
-            timestamp=datetime.now(timezone.utc),
-            alert=alert_obj,
-            enrichment=fallback
-        )
+    return EnrichedAlertOutput(
+        alert_id=alert.get("id", "unknown-id"),
+        timestamp=datetime.now(timezone.utc),
+        alert=alert_obj,
+        enrichment=fallback
+    )
 

@@ -66,12 +66,14 @@ def query_gemini(alert: dict, model: str = None) -> EnrichedAlertOutput:
         logger.error(f"Invalid alert schema: {e}")
         raise ValueError(f"Invalid input alert format: {e}")
 
+    # Defensive YARA handling: always define yara_results
     yara_results = []
     try:
         rules = load_yara_rules()
         yara_results = scan_alert_with_yara(alert, rules)
     except Exception as e:
         logger.warning(f"YARA scan failed or no rules loaded: {e}")
+        yara_results = []
 
     try:
         template = load_prompt_template(PROMPT_TEMPLATE_PATH)
@@ -119,6 +121,7 @@ def query_gemini(alert: dict, model: str = None) -> EnrichedAlertOutput:
 
     except Exception as e:
         logger.error(f"Gemini enrichment error: {e}")
+        # Defensive: ensure yara_results is always defined
         fallback_enrichment = Enrichment(
             summary_text=f"Enrichment failed: {e}",
             tags=[],

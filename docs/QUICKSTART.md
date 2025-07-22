@@ -40,6 +40,7 @@ python llm_enrichment.py
 
 ```sh
 uvicorn api.api_server:app --reload
+uvicorn api.api_server:app --host 0.0.0.0 --reload
 ```
 
 ## 5. Test API
