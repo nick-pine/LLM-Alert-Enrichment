@@ -1,4 +1,3 @@
-
 """
 Ollama provider integration for LLM enrichment.
 Handles API endpoint, prompt formatting, and enrichment logic.
@@ -16,9 +15,10 @@ from schemas.output_schema import Enrichment, EnrichedAlertOutput
 from core.yara_integration import load_yara_rules, scan_alert_with_yara
 from core.utils import load_prompt_template  # shared utility
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("llm_enrichment")
 
 OLLAMA_API = os.getenv("OLLAMA_API", "http://localhost:11434/api/generate")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "phi3:mini")
 PROMPT_TEMPLATE_PATH = "templates/prompt_template.txt"
 
 
@@ -37,13 +37,13 @@ def clean_llm_response(raw: str) -> str:
     return raw
 
 
-def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
+def query_ollama(alert: dict, model: str = None) -> EnrichedAlertOutput:
     """
     Enriches a Wazuh alert using the Ollama API.
 
     Args:
         alert (dict): The alert data to enrich.
-        model (str): The Ollama model to use (default: "phi3:mini").
+        model (str, optional): The Ollama model to use. If not provided, uses OLLAMA_MODEL from env.
 
     Returns:
         EnrichedAlertOutput: The enriched alert output schema.
@@ -52,6 +52,8 @@ def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
         ValueError: If the input alert format is invalid.
         RuntimeError: If the prompt template cannot be loaded.
     """
+    if model is None:
+        model = os.getenv("OLLAMA_MODEL", "phi3:mini")
 
     try:
         alert_obj = WazuhAlertInput(**alert)
@@ -86,12 +88,11 @@ def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
         parsed_json = json.loads(clean_llm_response(raw))
 
         parsed_json.update({
-            "llm_model_version": f"{model}-ollama",
-            "enriched_by": f"{model}@WSL",
+            "llm_model_version": model,
+            "enriched_by": f"{model}@ollama-api",
             "enrichment_duration_ms": int((time.time() - start) * 1000),
             "yara_matches": yara_results
         })
-
         enrichment = Enrichment(**parsed_json)
         return EnrichedAlertOutput(
             alert_id=alert.get("id", "unknown-id"),
@@ -105,27 +106,26 @@ def query_ollama(alert: dict, model: str = "phi3:mini") -> EnrichedAlertOutput:
     except requests.RequestException as e:
         logger.error(f"Ollama API request failed: {e}")
     except Exception as e:
-        logger.exception(f"Unexpected error from Ollama: {e}")
+        logger.error(f"Ollama enrichment error: {e}")
+        fallback = Enrichment(
+            summary_text=f"Ollama enrichment failed.",
+            tags=[],
+            risk_score=0,
+            false_positive_likelihood=1.0,
+            alert_category="Unknown",
+            remediation_steps=[],
+            related_cves=[],
+            external_refs=[],
+            llm_model_version=model,
+            enriched_by=f"{model}@ollama-api",
+            enrichment_duration_ms=0,
+            yara_matches=yara_results
+        )
 
-    fallback = Enrichment(
-        summary_text=f"Ollama enrichment failed.",
-        tags=[],
-        risk_score=0,
-        false_positive_likelihood=1.0,
-        alert_category="Unknown",
-        remediation_steps=[],
-        related_cves=[],
-        external_refs=[],
-        llm_model_version=f"{model}-ollama",
-        enriched_by=f"{model}@WSL",
-        enrichment_duration_ms=0,
-        yara_matches=yara_results
-    )
-
-    return EnrichedAlertOutput(
-        alert_id=alert.get("id", "unknown-id"),
-        timestamp=datetime.now(timezone.utc),
-        alert=alert_obj,
-        enrichment=fallback
-    )
+        return EnrichedAlertOutput(
+            alert_id=alert.get("id", "unknown-id"),
+            timestamp=datetime.now(timezone.utc),
+            alert=alert_obj,
+            enrichment=fallback
+        )
 

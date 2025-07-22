@@ -1,4 +1,3 @@
-
 """
 Claude provider integration for LLM enrichment.
 Handles API key loading, prompt formatting, and enrichment logic.
@@ -8,6 +7,7 @@ import json
 import time
 import requests
 import os
+import logging
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from schemas.input_schema import WazuhAlertInput
@@ -29,7 +29,9 @@ HEADERS = {
     "content-type": "application/json"
 }
 
-def query_claude(alert: dict, model: str = "claude-3-sonnet") -> EnrichedAlertOutput:
+logger = logging.getLogger("llm_enrichment")
+
+def query_claude(alert: dict, model: str = None) -> EnrichedAlertOutput:
     """
     Enriches a Wazuh alert using the Claude API.
 
@@ -44,6 +46,9 @@ def query_claude(alert: dict, model: str = "claude-3-sonnet") -> EnrichedAlertOu
         ValueError: If the input alert format is invalid.
         RuntimeError: If the prompt template cannot be loaded.
     """
+
+    if model is None:
+        model = os.getenv("LLM_MODEL", "claude-3-sonnet")
 
     try:
         alert_obj = WazuhAlertInput(**alert)
@@ -96,7 +101,6 @@ def query_claude(alert: dict, model: str = "claude-3-sonnet") -> EnrichedAlertOu
             "enrichment_duration_ms": int((time.time() - start) * 1000),
             "yara_matches": yara_results
         })
-
         enrichment = Enrichment(**enrichment_data)
         return EnrichedAlertOutput(
             alert_id=alert.get("id", "unknown-id"),
@@ -106,7 +110,7 @@ def query_claude(alert: dict, model: str = "claude-3-sonnet") -> EnrichedAlertOu
         )
 
     except Exception as e:
-        log(f"[!] Claude error: {e}", tag="!")
+        logger.error(f"Claude error: {e}")
         fallback_enrichment = Enrichment(
             summary_text=f"Enrichment failed: {e}",
             tags=[],
