@@ -28,12 +28,11 @@ def get_elasticsearch_client():
 
 # core/io.py
 """
-I/O utilities for the LLM enrichment project.
 Handles reading alert logs, writing enriched output, and pushing to Elasticsearch.
 """
 import json
 import requests
-from core.logger import log
+from src.core.logger import log
 
 def read_alert_log(path):
     """
@@ -84,7 +83,7 @@ def push_to_elasticsearch(doc):
     attempt = 0
     success = False
     # --- Bulletproof schema validation with Pydantic ---
-    from core.wazuh_alert_schema import WazuhAlert
+    from src.core.wazuh_alert_schema import WazuhAlert
     if "alert" not in doc:
         doc = {"alert": doc}
     reserved = ["_index", "_id", "_version", "_score", "_source", "fields", "sort", "highlight"]

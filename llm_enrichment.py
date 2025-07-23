@@ -2,11 +2,11 @@
 
 import os
 import json
-from core.io import get_elasticsearch_client
+from src.core.io import get_elasticsearch_client
 from config import ELASTICSEARCH_URL, ELASTIC_USER, ELASTIC_PASS, ENRICHED_INDEX
-from core.engine import run_enrichment_loop
+from src.core.engine import run_enrichment_loop
 from config import ALERT_LOG_PATH
-from providers.ollama import query_ollama
+from src.providers.ollama import query_ollama
 
 
 def fill_missing_fields(alert):
@@ -78,7 +78,7 @@ def run_single_alert_file():
             print("==============================\n")
 
             # Send to Elasticsearch
-            from core.io import push_to_elasticsearch
+            from src.core.io import push_to_elasticsearch
             try:
                 push_to_elasticsearch(result_dict)
                 print(f"[INFO] Enriched alert sent to Elasticsearch via push_to_elasticsearch (alert_id: {result_dict.get('alert_id')})")

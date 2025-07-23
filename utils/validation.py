@@ -4,9 +4,8 @@ Validation utilities for the LLM enrichment project.
 Validates input alerts and enriched output schemas using Pydantic models.
 """
 # utils/validation.py
-from schemas.input_schema import WazuhAlertInput
-from schemas.output_schema import EnrichedAlertOutput
-from core.logger import log
+from src.schemas import WazuhAlertInput, EnrichedAlertOutput
+from src.core.logger import log
 
 def validate_input_alert(data: dict):
     """

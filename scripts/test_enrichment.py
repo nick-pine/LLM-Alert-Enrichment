@@ -1,4 +1,4 @@
-from src.providers.ollama import query_ollama
+from providers.ollama import query_ollama
 import json
 import time
 import requests

@@ -58,3 +58,8 @@ yay_rules/
 valhalla/rules.yar
 
 dead_letter_queue.jsonl
+
+# Wazuh installation files (large binary/script files)
+wazuh-install.sh
+wazuh-install-files.tar
+wazuh-install-files/

@@ -22,7 +22,7 @@ def safe_run(label="Task"):
                 return func(*args, **kwargs)
             except Exception as e:
                 # Import logger only on error to avoid circular imports
-                from core.logger import log
+                from src.core.logger import log
                 log(f"{label} failed: {e.__class__.__name__}: {e}", tag="!")
         return wrapper
     return decorator

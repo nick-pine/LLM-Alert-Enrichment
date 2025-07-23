@@ -11,11 +11,11 @@ from config import (
     ALERT_LOG_PATH,
     ENRICHED_OUTPUT_PATH
 )
-from providers.ollama import query_ollama
+from src.providers.ollama import query_ollama
 from utils.validation import validate_input_alert, validate_enriched_output
-from core.io import read_alert_log, write_enriched_output, push_to_elasticsearch
-from core.logger import log
-from core.preprocessing import fill_missing_fields, normalize_alert_types
+from src.core.io import read_alert_log, write_enriched_output, push_to_elasticsearch
+from src.core.logger import log
+from src.core.preprocessing import fill_missing_fields, normalize_alert_types
 
 def run_enrichment_loop():
     """

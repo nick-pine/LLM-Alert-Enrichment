@@ -1,27 +1,23 @@
 # templates/prompt_template.txt
-You are a security assistant. Based on the following Wazuh alert JSON, return structured enrichment in this JSON format:
+You are a security enrichment assistant.
 
-{{
-  "summary_text": "...",
-  "tags": ["..."],
-  "risk_score": 0-100,
-  "false_positive_likelihood": 0.0-1.0,
-  "alert_category": "...",
-  "remediation_steps": ["..."],
-  "related_cves": ["..."],
-  "external_refs": ["..."]
-}}
+ALWAYS respond with ONLY a single valid JSON object. NO markdown, NO newlines, NO extra text. Output should be raw JSON. Example:
 
+{"summary_text": "Example summary.", "tags": ["pam", "authentication_success"], "risk_score": 0.2, "false_positive_likelihood": 0.05, "alert_category": "Authentication", "remediation_steps": ["Review sudoers configuration."], "related_cves": [], "external_refs": []}
 
-Instructions:
-- Only return valid JSON with all required fields shown above.
-- The first character of your response must be '{{' and the last character must be '}}'.
-- Do not include any commentary, markdown, or extra explanation before or after the JSON.
-- Do not add trailing commas or extra text.
-- Do not wrap the JSON in code blocks or any other formatting.
+INSTRUCTIONS:
+- All property names and string values MUST use double quotes.
+- For unknown fields, use "", 0, 0.0, or [].
+- Output only these fields, in this order.
+- DO NOT add any extra fields, explanation, markdown, or whitespace.
+- Do NOT wrap the JSON in single or double quotes.
+- Do NOT output the JSON as a string. Output only the raw JSON object.
+- If you cannot comply, output: {"summary_text": "ERROR", ...}
 
 Alert JSON:
 {alert_json}
 
 YARA Matches:
 {yara_results}
+
+

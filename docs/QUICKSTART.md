@@ -39,8 +39,8 @@ python llm_enrichment.py
 ## 4. Run API Server
 
 ```sh
-uvicorn api.api_server:app --reload
-uvicorn api.api_server:app --host 0.0.0.0 --reload
+uvicorn src.api.server:app --reload
+uvicorn src.api.server:app --host 0.0.0.0 --reload
 ```
 
 ## 5. Test API

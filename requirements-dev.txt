@@ -1,0 +1,16 @@
+# Development dependencies (for development and testing)
+# Install with: pip install -r requirements-dev.txt
+
+# Include production dependencies
+-r requirements.txt
+
+# Development tools
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.0.0
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Documentation
+mkdocs>=1.4.0
+mkdocs-material>=9.0.0
