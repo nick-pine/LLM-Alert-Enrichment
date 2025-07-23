@@ -35,8 +35,7 @@ PROMPT_TEMPLATE_PATH = "templates/prompt_template.txt"
 
 
 def clean_llm_response(raw: str) -> str:
-    """
-    Cleans and extracts valid JSON object from raw LLM output.
+    """Cleans and extracts valid JSON object from raw LLM output.
     Handles code blocks, quoted JSON, and escaped JSON.
     """
     raw = raw.strip()

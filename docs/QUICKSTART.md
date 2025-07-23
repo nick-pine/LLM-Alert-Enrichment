@@ -59,13 +59,13 @@ You can now POST either format:
 
 Use curl (Linux/macOS):
 ```sh
-curl -X POST "http://10.1.0.247:8000/v1/enrich" -H "Content-Type: application/json" -d '{ "alert": { "id": "123", "timestamp": "2025-07-17T12:00:00Z" } }'
+curl -X POST "http://localhost:8000/v1/enrich" -H "Content-Type: application/json" -d '{ "alert": { "id": "123", "timestamp": "2025-07-17T12:00:00Z" } }'
 ```
 
 Or:
 ```sh
-curl -X POST "http://10.1.0.247:8000/v1/enrich" -H "Content-Type: application/json" -d '{ "id": "123", "timestamp": "2025-07-17T12:00:00Z" }'
+curl -X POST "http://localhost:8000/v1/enrich" -H "Content-Type: application/json" -d '{ "id": "123", "timestamp": "2025-07-17T12:00:00Z" }'
 ```
 
-Or use Swagger UI at http://10.1.0.247:8000/docs  
-http://10.1.0.247:8000/openapi.json raw OpenAPI
+Or use Swagger UI at http://localhost:8000/docs  
+http://localhost:8000/openapi.json raw OpenAPI

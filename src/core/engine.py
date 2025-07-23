@@ -55,6 +55,7 @@ def run_enrichment_loop():
                     except Exception as e:
                         log(f"[WARNING] LLM provider failed: {e}", tag="!")
                         enriched = None
+                    
                     enrichment_data = None
                     if enriched and hasattr(enriched, "enrichment"):
                         enrichment_data = enriched.enrichment.model_dump()
@@ -78,22 +79,27 @@ def run_enrichment_loop():
                             "raw_llm_response": None,
                             "error": "Validation or enrichment failed"
                         }
-                output = {
-                    "alert_id": alert_id,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "alert": alert,
-                    "enrichment": enrichment_data
-                }
+                    
+                    output = {
+                        "alert_id": alert_id,
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "alert": alert,
+                        "enrichment": enrichment_data
+                    }
 
-                try:
-                    validate_enriched_output(output)
-                except Exception as e:
-                    import traceback
-                    log(f"[FALLBACK] Output schema validation failed: {e}\nTraceback: {traceback.format_exc()}", tag="!")
-                    # Still write and push the output, even if not schema-valid
-                write_enriched_output(ENRICHED_OUTPUT_PATH, output)
-                push_to_elasticsearch(output)
-                time.sleep(1.5)
+                    try:
+                        validate_enriched_output(output)
+                    except Exception as e:
+                        import traceback
+                        log(f"[FALLBACK] Output schema validation failed: {e}\nTraceback: {traceback.format_exc()}", tag="!")
+                        # Still write and push the output, even if not schema-valid
+                    
+                    write_enriched_output(ENRICHED_OUTPUT_PATH, output)
+                    push_to_elasticsearch(output)
+                    time.sleep(1.5)
+                    
+                except Exception as validation_error:
+                    log(f"[ERROR] Alert validation failed: {validation_error}", tag="!")
 
             except Exception as e:
                 import traceback
