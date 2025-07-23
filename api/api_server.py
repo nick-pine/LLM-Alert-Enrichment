@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from schemas.api_schema import EnrichRequest, EnrichResponse, ErrorResponse, Enrichment
 from core.preprocessing import fill_missing_fields, normalize_alert_types
 from core.io import push_to_elasticsearch
-from core.factory import get_llm_query_function
+from providers.ollama import query_ollama
 import datetime
 
 app = FastAPI()
@@ -27,8 +27,7 @@ async def enrich_alert(request: Request):
             alert = body
         alert = fill_missing_fields(alert)
         alert = normalize_alert_types(alert)
-        query_llm = get_llm_query_function()
-        enriched = query_llm(alert)
+        enriched = query_ollama(alert)  # <--- Direct call
         es_doc = {
             "alert_id": enriched.alert_id,
             "timestamp": enriched.timestamp.isoformat() if hasattr(enriched.timestamp, 'isoformat') else str(enriched.timestamp),

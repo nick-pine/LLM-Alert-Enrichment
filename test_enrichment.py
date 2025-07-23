@@ -1,4 +1,4 @@
-from core.factory import get_llm_query_function
+from providers.ollama import query_ollama
 import json
 import time
 import requests
@@ -95,8 +95,7 @@ if USE_API:
         print(f"Error parsing API response: {e}")
         sys.exit(1)
 else:
-    query_llm = get_llm_query_function()
-    result = query_llm(sample_alert["alert"])
+    result = query_ollama(sample_alert["alert"])
     result_dict = result.model_dump()
     enrich = result_dict['enrichment']
     if "yara_matches" not in enrich or enrich["yara_matches"] is None:

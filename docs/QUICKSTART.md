@@ -9,7 +9,7 @@ cd llm_enrichment
 
 ## 2. Set Up Environment
 - Copy `.env.example` to `.env` and fill in required values.
-
+cp .env.example .env
 - **Create and activate a virtual environment:**
 
 On Linux/macOS:
@@ -57,15 +57,15 @@ You can now POST either format:
 { "id": "123", "timestamp": "2025-07-17T12:00:00Z" }
 ```
 
-Use PowerShell:
-```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/v1/enrich" -Method POST -Headers @{ "Content-Type" = "application/json" } -Body '{ "alert": { "id": "123", "timestamp": "2025-07-17T12:00:00Z" } }' | ConvertTo-Json -Depth 5
+Use curl (Linux/macOS):
+```sh
+curl -X POST "http://10.1.0.247:8000/v1/enrich" -H "Content-Type: application/json" -d '{ "alert": { "id": "123", "timestamp": "2025-07-17T12:00:00Z" } }'
 ```
 
 Or:
-```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8000/v1/enrich" -Method POST -Headers @{ "Content-Type" = "application/json" } -Body '{ "id": "123", "timestamp": "2025-07-17T12:00:00Z" }' | ConvertTo-Json -Depth 5
+```sh
+curl -X POST "http://10.1.0.247:8000/v1/enrich" -H "Content-Type: application/json" -d '{ "id": "123", "timestamp": "2025-07-17T12:00:00Z" }'
 ```
 
-Or use Swagger UI at http://127.0.0.1:8000/docs
-http://localhost:8000/openapi.json raw OpenAPI JSON spec
+Or use Swagger UI at http://10.1.0.247:8000/docs  
+http://10.1.0.247:8000/openapi.json raw OpenAPI

@@ -11,14 +11,11 @@ from config import (
     ALERT_LOG_PATH,
     ENRICHED_OUTPUT_PATH
 )
-from core.factory import get_llm_query_function
+from providers.ollama import query_ollama
 from utils.validation import validate_input_alert, validate_enriched_output
 from core.io import read_alert_log, write_enriched_output, push_to_elasticsearch
 from core.logger import log
 from core.preprocessing import fill_missing_fields, normalize_alert_types
-
-query_llm = get_llm_query_function()
-
 
 def run_enrichment_loop():
     """
@@ -54,7 +51,7 @@ def run_enrichment_loop():
                     validate_input_alert(alert)
                     log(f"Enriching alert {alert_id}...", tag="+")
                     try:
-                        enriched = query_llm(alert, model=LLM_MODEL)
+                        enriched = query_ollama(alert, model=LLM_MODEL)
                     except Exception as e:
                         log(f"[WARNING] LLM provider failed: {e}", tag="!")
                         enriched = None

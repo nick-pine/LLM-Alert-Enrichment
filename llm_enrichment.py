@@ -6,7 +6,7 @@ from core.io import get_elasticsearch_client
 from config import ELASTICSEARCH_URL, ELASTIC_USER, ELASTIC_PASS, ENRICHED_INDEX
 from core.engine import run_enrichment_loop
 from config import ALERT_LOG_PATH
-from core.factory import get_llm_query_function
+from providers.ollama import query_ollama
 
 
 def fill_missing_fields(alert):
@@ -42,8 +42,7 @@ def run_single_alert_file():
             if '_source' in alert:
                 alert = alert['_source']
             alert = fill_missing_fields(alert)
-            query_llm = get_llm_query_function()
-            result = query_llm(alert)
+            result = query_ollama(alert)  # <--- Direct call
             result_dict = result.model_dump()
             enrich = result_dict['enrichment']
 
