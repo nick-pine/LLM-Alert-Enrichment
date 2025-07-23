@@ -21,12 +21,18 @@ This guide describes how to safely revert your deployment to a previous stable s
   ```
 
 ## 3. Re-deploy Application
-- Restart services (FastAPI, Docker containers, etc.) using the previous codebase.
+- Restart services using the previous codebase.
 - Example:
   ```sh
-  docker-compose down
-  docker-compose up -d
-  # or
+  # If using Docker (when available)
+  docker compose down
+  docker compose up -d
+  
+  # If running directly with Python
+  # Stop current process (Ctrl+C) and restart:
+  uvicorn src.api.server:app --reload --host 0.0.0.0 --port 8000
+  
+  # If using systemd service
   systemctl restart <your-service>
   ```
 

@@ -1,5 +1,33 @@
 # Cost Monitoring Recommendations
 
+## Current Setup: Ollama (Local/Free)
+**Good News!** The current system uses Ollama for local LLM inference, which means:
+- ✅ **No API costs** - Models run locally on your hardware
+- ✅ **No per-token charges** - Unlimited usage once models are downloaded
+- ✅ **Data privacy** - No data leaves your environment
+
+### Resource Monitoring for Ollama
+Monitor local resource usage:
+```bash
+# Check CPU and memory usage
+htop
+
+# Monitor GPU usage (if using GPU acceleration)
+nvidia-smi
+
+# Check disk space for models
+du -sh ~/.ollama/models/
+```
+
+## Future: Cloud LLM Provider Costs
+If you plan to integrate cloud LLM providers in the future:
+
+### LLM/API Usage
+- Enable usage and billing dashboards for your LLM provider (OpenAI, Gemini, Claude, etc.).
+- Set up API usage alerts or limits in your provider's console.
+- Log each enrichment request's token count and cost (if available in the API response).
+- Periodically export and review usage/cost data.Monitoring Recommendations
+
 ## LLM/API Usage
 - Enable usage and billing dashboards for your LLM provider (OpenAI, Gemini, Claude, etc.).
 - Set up API usage alerts or limits in your provider’s console.

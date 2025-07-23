@@ -1,27 +1,48 @@
 # LLM-Alert-Enrichment
 
-Provider-agnostic enrichment pipeline and API for Wazuh alerts using LLMs (OpenAI, Gemini, Claude, Ollama).
+Professional LLM-powered enrichment pipeline and API for Wazuh security alerts using Ollama.
 
 ## Features
-- Modular provider architecture
-- Pydantic schema validation
-- Docker and venv support
-- Secure Elasticsearch integration
-- FastAPI enrichment API
-- Flexible logging utility (see `core/logger.py`)
-- Cost monitoring and performance tuning guides
+- **Clean Architecture**: Organized `src/` structure with separation of concerns
+- **Unified Schema System**: Centralized Pydantic validation in `src/schemas/`
+- **Structured Logging**: Professional logging system replacing debug files
+- **Cross-Platform**: Works seamlessly in WSL, Windows, and Linux environments
+- **FastAPI Integration**: RESTful API with automatic OpenAPI documentation
+- **Elasticsearch Storage**: Optional persistence and querying capabilities
+- **Production Ready**: Proper configuration management and error handling
+
+## Quick Start
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Setup environment
+cp .env.example .env
+
+# 3. Start API server
+uvicorn src.api.server:app --reload
+
+# 4. Test enrichment
+python scripts/test_enrichment.py
+```
 
 ## Documentation
-All guides and work logs are now in the `docs/` folder:
-- `DOCKER_SETUP.md`: Docker setup guide
-- `ELASTICSEARCH_DEV_SSL.md`: SSL setup for Elasticsearch
+Comprehensive guides available in the `docs/` folder:
+- `QUICKSTART.md`: Complete setup and usage guide
+- `ARCHITECTURE.md`: System architecture and design overview  
+- `OLLAMA_SETUP.md`: Ollama provider configuration
 - `ENVIRONMENT.md`: Environment variable configuration
-- `OLLAMA_SETUP.md`: Ollama provider setup
-- `QUICKSTART.md`: Quickstart guide
+- `WSL_WINDOWS_GUIDE.md`: Cross-platform development guide
+- `ELASTICSEARCH_DEV_SSL.md`: SSL setup for Elasticsearch
+- `DOCKER_SETUP.md`: Docker deployment guide
 - `COST_MONITORING.md`: Cost monitoring recommendations
-- `PERFORMANCE_TUNING.md`: Performance tuning instructions
+- `PERFORMANCE_TUNING.md`: Performance optimization
 
-**Update (July 18, 2025):**
-The enrichment API now accepts both wrapped (`{"alert": {...}}`) and unwrapped (`{...}`) alert payloads for maximum compatibility. See `QUICKSTART.md` for examples.
+## Recent Updates (July 2025)
+- ✅ **Major Cleanup**: Reorganized entire codebase with professional structure
+- ✅ **Schema Consolidation**: Unified all schemas into `src/schemas/__init__.py`
+- ✅ **Debug Cleanup**: Removed hardcoded debug files, added structured logging
+- ✅ **Cross-Platform**: Full WSL and Windows compatibility
+- ✅ **Import Modernization**: Clean `from src.module import` pattern throughout
 
 See each file for details.

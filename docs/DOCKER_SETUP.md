@@ -1,5 +1,27 @@
 # Docker Setup Guide for LLM Enrichment API
 
+> **Note**: This project currently focuses on direct Python execution. Docker configuration is planned for future releases. For now, use the standard Python setup described in `QUICKSTART.md`.
+
+## Quick Python Setup (Recommended)
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Start API server
+uvicorn src.api.server:app --reload --host 0.0.0.0 --port 8000
+
+# Test the API
+curl -X POST "http://localhost:8000/v1/enrich" \
+  -H "Content-Type: application/json" \
+  -d '{"id": "123", "timestamp": "2025-07-23T12:00:00Z"}'
+```
+
+---
+
+## Future Docker Configuration (Planned)
+
+When Docker support is added, it will include:
+
 ## 0. Install Docker & Docker Compose
 
 **On Ubuntu/Debian:**

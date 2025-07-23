@@ -8,7 +8,7 @@
 
 Use this command to measure average enrichment time:
 ```sh
-time python test_enrichment.py
+time python scripts/test_enrichment.py
 ```
 
 ## Profiling API Performance

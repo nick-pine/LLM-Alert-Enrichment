@@ -10,7 +10,7 @@ install: ## Install dependencies
 	pip install -r requirements.txt
 
 test: ## Run tests
-	python test_enrichment.py
+	python scripts/test_enrichment.py
 
 clean: ## Clean up temporary files
 	find . -type f -name "*.pyc" -delete
