@@ -68,6 +68,24 @@ def clean_llm_response(raw: str) -> str:
 
 from typing import Optional
 
+def warm_up_model(model: str) -> bool:
+    """Pre-warm the Ollama model to reduce first-request latency"""
+    try:
+        logger.info(f"Warming up model {model}...")
+        payload = {
+            "model": model,
+            "prompt": "Hello",
+            "stream": False,
+            "options": {"max_tokens": 1}
+        }
+        response = requests.post(OLLAMA_API, json=payload, timeout=600)
+        response.raise_for_status()
+        logger.info(f"Model {model} warmed up successfully")
+        return True
+    except Exception as e:
+        logger.warning(f"Model warm-up failed: {e}")
+        return False
+
 def query_ollama(alert: dict, model: Optional[str] = None) -> EnrichedAlertOutput:
     """
     Enriches a Wazuh alert using the Ollama API.
@@ -76,10 +94,13 @@ def query_ollama(alert: dict, model: Optional[str] = None) -> EnrichedAlertOutpu
     
     raw_llm_response = None
     if model is None:
-        # Force llama3:8b to avoid phi3:mini issues
-        model = "llama3:8b"
+        # Use the model from environment variable
+        model = os.getenv("LLM_MODEL", "llama3:8b")
     
     logger.debug(f"Using model: {model}")
+    
+    # Warm up model if this is likely the first request
+    warm_up_model(model)
     
     try:
         alert_obj = WazuhAlertInput(**alert)
@@ -153,10 +174,16 @@ JSON OUTPUT:"""
         payload = {
             "model": model,
             "prompt": prompt,
-            "stream": False
+            "stream": False,
+            "options": {
+                "temperature": 0.7,
+                "top_p": 0.9,
+                "max_tokens": 1000
+            }
         }
         
-        response = requests.post(OLLAMA_API, json=payload, timeout=120)
+        logger.info("Sending request to Ollama (this may take 1-5 minutes on first model load)...")
+        response = requests.post(OLLAMA_API, json=payload, timeout=600)  # 10 minutes for first load
         response.raise_for_status()
         
         logger.debug("HTTP request completed successfully")
